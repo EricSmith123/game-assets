@@ -121,7 +121,7 @@
             setup() {
                 // --- 配置区 ---
                 const boardSize = 8;
-                const tileTypes = 6;
+                const tileTypes = 8; // *** FIX: 根据截图，您的图片有8张 ***
 
                 // --- 状态变量 ---
                 const gameStarted = ref(false);
@@ -153,15 +153,17 @@
                 const sfxCache = new Map();
                 const isAudioUnlocked = ref(false);
 
-                // --- 数据定义 (使用正确的相对路径) ---
+                // --- 数据定义 (根据截图修正路径) ---
                 const bgmList = ref([
-                    { id: 1, name: "轻松BGM", src: './assets/audio/bgm/bgm_1.mp3' },
-                    { id: 2, name: "活泼BGM", src: './assets/audio/bgm/bgm_2.mp3' }
+                    { id: 1, name: "轻松BGM", src: './audio/bgm/bgm_1.mp3' },
+                    { id: 2, name: "活泼BGM", src: './audio/bgm/bgm_2.mp3' }
                 ]);
                 const sfxMap = {
-                    click: './assets/audio/sfx/click.mp3', swap: './assets/audio/sfx/swap.mp3',
-                    match: './assets/audio/sfx/match.mp3', error: './assets/audio/sfx/error.mp3',
-                    fall: './assets/audio/sfx/fall.mp3', nomove: './assets/audio/sfx/nomove.mp3'
+                    click: './audio/sfx/click.mp3', swap: './audio/sfx/swap.mp3',
+                    match: './audio/sfx/match.mp3', error: './audio/sfx/error.mp3',
+                    fall: './audio/sfx/fall.mp3', nomove: './audio/sfx/nomove.mp3',
+                    countdown: './audio/sfx/countdown.mp3', lose: './audio/sfx/lose.mp3',
+                    win: './audio/sfx/win.mp3'
                 };
                 
                 // --- 计算属性 ---
@@ -174,7 +176,7 @@
                 const flatBoard = computed(() => gameBoard.value.flat());
 
                 // --- 核心方法 ---
-                const getTileImage = (type) => `./assets/images/tile-${type}.webp`;
+                const getTileImage = (type) => `./tiles/tile-${type}.webp`; // *** FIX: 修正图片路径 ***
                 const getTileSymbol = (type) => "❓";
                 const hasImage = (type) => !imageLoadErrors.value.has(type);
                 const handleImageError = (e) => {
@@ -238,13 +240,7 @@
                 const processMatches=async()=>{isProcessing.value=!0;let m=checkMatches(gameBoard.value);while(m.length>0){chainCount.value++;score.value+=m.length*10*chainCount.value;if(chainCount.value>1){showMessage.value=!0;message.value=`连锁反应 x${chainCount.value}!`;messageType.value='chain';showChainEffect.value=!0;setTimeout(()=>{showChainEffect.value=!1},1e3)}playSfx('match');m.forEach(i=>{const t=gameBoard.value.find(t=>t.id===i);if(t)t.type=0});await new Promise(r=>setTimeout(r,200));playSfx('fall');for(let c=0;c<boardSize;c++){let e=boardSize-1;for(let r=boardSize-1;r>=0;r--){const t=gameBoard.value[r*boardSize+c];if(t.type!==0){if(e!==r){gameBoard.value[e*boardSize+c].type=t.type;t.type=0}e--}}}await new Promise(r=>setTimeout(r,200));gameBoard.value.forEach(t=>{if(t.type===0)t.type=Math.floor(Math.random()*tileTypes)+1});m=checkMatches(gameBoard.value)}chainCount.value=0;isProcessing.value=!1};
                 const handleTileClick=async t=>{if(isProcessing.value)return;if(!selectedTile.value){selectedTile.value=t;playSfx('click');return}const{row:r1,col:c1}=selectedTile.value;const{row:r2,col:c2}=t;if(Math.abs(r1-r2)+Math.abs(c1-c2)===1){isProcessing.value=!0;movesUsed.value++;const i1=r1*boardSize+c1;const i2=r2*boardSize+c2;[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];await nextTick();const m=checkMatches(gameBoard.value);if(m.length>0){playSfx('swap');selectedTile.value=null;await processMatches()}else{playSfx('error');await new Promise(r=>setTimeout(r,300));[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];selectedTile.value=t}isProcessing.value=!1}else{playSfx('error');selectedTile.value=t}};
 
-                const startGame = () => {
-                    unlockAudio();
-                    playSfx('click');
-                    gameStarted.value = true;
-                    resetGame();
-                    playBgm(bgmList.value.find(b => b.id === currentBgmId.value));
-                };
+                const startGame = () => { unlockAudio(); playSfx('click'); gameStarted.value = true; resetGame(); playBgm(bgmList.value.find(b => b.id === currentBgmId.value)); };
                 const restartGame = () => { playSfx('click'); resetGame(); };
                 const togglePause = () => { playSfx('click'); isPaused.value = !isPaused.value; if(isPaused.value) { bgmAudio.value?.pause(); if(gameTimer.value) clearInterval(gameTimer.value); } else { if(bgmEnabled.value) bgmAudio.value?.play(); gameTimer.value = setInterval(() => { gameTime.value++; }, 1000); } };
                 const toggleBgm = () => { playSfx('click'); bgmEnabled.value = !bgmEnabled.value; localStorage.setItem('bgm_enabled', bgmEnabled.value); if (bgmEnabled.value) { playBgm(bgmList.value.find(b => b.id === currentBgmId.value)); } else { bgmAudio.value?.pause(); bgmPlaying.value = false; } };
@@ -260,8 +256,10 @@
                     bgmEnabled.value = localStorage.getItem('bgm_enabled') !== 'false';
                     sfxEnabled.value = localStorage.getItem('sfx_enabled') !== 'false';
 
+                    // *** FIX: 修正预加载资源列表以匹配真实路径 ***
                     const assetsToLoad = [];
                     for (const key in sfxMap) { assetsToLoad.push({ type: 'audio', name: key, src: sfxMap[key] }); }
+                    for (const bgm of bgmList.value) { assetsToLoad.push({ type: 'audio', name: `bgm_${bgm.id}`, src: bgm.src }); }
                     for (let i = 1; i <= tileTypes; i++) { assetsToLoad.push({ type: 'image', src: getTileImage(i) }); }
                     
                     await Promise.all(assetsToLoad.map(asset => new Promise(resolve => {
@@ -271,8 +269,9 @@
                             img.src = asset.src;
                         } else if (asset.type === 'audio') {
                             const audio = new Audio(asset.src);
-                            sfxCache.set(asset.name, audio);
-                            audio.oncanplaythrough = audio.onerror = resolve;
+                            sfxCache.set(asset.name, audio); // 使用唯一的名字作为key缓存
+                            // 对于音频，我们不等待canplaythrough，因为这可能很慢。我们只创建实例。
+                            resolve();
                         }
                     })));
 
