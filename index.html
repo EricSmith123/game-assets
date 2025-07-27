@@ -18,7 +18,7 @@
         .bgm-selector { position: static; background: none; border-radius: 0; padding: 0; display: flex; gap: 5px; }
         .bgm-btn { background: rgba(255,255,255,0.3); border: none; color: white; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; touch-action: manipulation; transition: all 0.2s; }
         .bgm-btn.active { background: rgba(255,255,255,0.8); color: #333; }
-        .audio-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px; border-radius: 50%; cursor: pointer; font-size: 14px; touch-action: manipulation; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
+        .audio-btn, .settings-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px; border-radius: 50%; cursor: pointer; font-size: 14px; touch-action: manipulation; min-width: 32px; min-height: 32px; display: flex; align-items: center; justify-content: center; }
         .pause-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 12px; border-radius: 15px; cursor: pointer; font-size: 12px; touch-action: manipulation; }
         .action-btn.green { background: #27ae60; }
         .action-btn.green:hover { background: #229954; }
@@ -26,9 +26,9 @@
         .score-box { text-align: center; }
         .score-label { display: block; font-size: 12px; opacity: 0.8; }
         .score-value { display: block; font-size: 18px; font-weight: bold; }
-        .game-content { padding: 70px 20px 20px 20px; }
+        .game-content { padding: 70px 15px 15px 15px; }
         .game-board-container { position: relative; }
-        .game-board { width: min(90vw, 400px); height: min(90vw, 400px); max-width: 400px; max-height: 400px; margin: 0 auto; display: grid; gap: 2px; background: #f0f0f0; border-radius: 10px; padding: 10px; position: relative; }
+        .game-board { width: min(95vw, 500px); height: min(95vw, 500px); max-width: 500px; max-height: 500px; margin: 0 auto; display: grid; gap: 2px; background: #f0f0f0; border-radius: 10px; padding: 10px; position: relative; }
         .game-tile { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; position: relative; user-select: none; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); touch-action: manipulation; font-size: 24px; font-weight: bold; }
         .game-tile img { width: 85%; height: 85%; object-fit: contain; pointer-events: none; }
         .game-tile:hover { transform: scale(1.05); }
@@ -54,8 +54,6 @@
         .loading-content { text-align: center; color: white; max-width: 400px; padding: 40px; }
         .loading-spinner { width: 60px; height: 60px; border: 4px solid rgba(255, 255, 255, 0.3); border-top: 4px solid white; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 30px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .settings-btn { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.9); border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s ease; z-index: 1001; }
-        .settings-btn:hover { background: white; transform: translateY(-2px); }
         .settings-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 2000; }
         .settings-content { background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto; }
         .settings-content h3 { margin: 0 0 20px 0; text-align: center; color: #333; }
@@ -67,7 +65,6 @@
         .reset-btn { background: #ff6b6b; color: white; }
         .close-btn { background: #4ecdc4; color: white; }
         .settings-actions button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-        @media (min-width: 768px) { .game-container { max-width: 600px; max-height: 800px; } .game-board { width: 450px; height: 450px; } .top-controls { height: 70px; padding: 15px 20px; } .bgm-btn { padding: 8px 14px; font-size: 13px; } .audio-btn { min-width: 40px; min-height: 40px; } .game-content { padding: 80px 30px 30px 30px; } }
     </style>
 </head>
 <body>
@@ -87,7 +84,8 @@
             <div v-if="gameStarted" class="top-controls">
                 <div class="bgm-selector"><button v-for="bgm in bgmList" :key="bgm.id" class="bgm-btn" :class="{ active: currentBgmId === bgm.id }" @click="switchBgm(bgm)">BGM{{ bgm.id }}</button></div>
                 <div class="right-controls">
-                    <button class="audio-btn" @click="toggleBgm" :title="bgmPlaying ? '暂停音乐' : '播放音乐'">{{ bgmPlaying ? '🔊' : '🔇' }}</button>
+                    <button class="settings-btn" @click="openSettings" title="设置">⚙️</button>
+                    <button class="audio-btn" @click="toggleBgm" :title="bgmEnabled ? '关闭音乐' : '开启音乐'">{{ bgmEnabled ? '🔊' : '🔇' }}</button>
                     <button class="audio-btn" @click="toggleSfx" :title="sfxEnabled ? '关闭音效' : '开启音效'">{{ sfxEnabled ? '🎵' : '🔕' }}</button>
                     <button class="pause-btn" @click="togglePause" v-if="!showGameOver">{{ isPaused ? '▶️' : '⏸️' }}</button>
                 </div>
@@ -115,7 +113,6 @@
                     <div class="particle-effect"><div v-for="p in particles" :key="p.id" class="particle" :style="{ top: p.y + 'px', left: p.x + 'px' }"></div></div>
                 </div>
             </div>
-            <button v-if="!showLoading" @click="openSettings" class="settings-btn">⚙️ 设置</button>
         </div>
     </div>
     <script>
@@ -146,7 +143,8 @@
                 const messageType = ref('info');
                 const showChainEffect = ref(false);
                 const bgmPlaying = ref(false);
-                const sfxEnabled = ref(true);
+                const bgmEnabled = ref(true); // 新增：BGM开关状态
+                const sfxEnabled = ref(true); // 音效开关状态
                 const currentBgmId = ref(1);
                 const bgmVolume = ref(50);
                 const sfxVolumePercent = ref(70);
@@ -154,7 +152,7 @@
                 const bgmAudio = ref(null);
                 const sfxCache = new Map();
 
-                // --- 数据定义 (使用相对路径) ---
+                // --- 数据定义 (使用正确的相对路径) ---
                 const bgmList = ref([
                     { id: 1, name: "轻松BGM", src: './assets/audio/bgm/bgm_1.mp3' },
                     { id: 2, name: "活泼BGM", src: './assets/audio/bgm/bgm_2.mp3' }
@@ -183,13 +181,13 @@
                     if (match) imageLoadErrors.value.add(parseInt(match[1]));
                 };
                 const getTileClasses = (tile) => ({ 'selected': selectedTile.value?.id === tile.id });
-
+                
                 const playSfx = (name) => {
                     if (!sfxEnabled.value || !sfxMap[name]) return;
                     let audio = sfxCache.get(name);
                     if (!audio) {
-                        audio = new Audio(sfxMap[name]);
-                        sfxCache.set(name, audio);
+                        // 在预加载时已经创建并缓存了，这里理论上总能找到
+                        return;
                     }
                     audio.currentTime = 0;
                     audio.volume = sfxVolumePercent.value / 100;
@@ -198,7 +196,10 @@
 
                 const playBgm = (bgm) => {
                     bgmAudio.value?.pause();
-                    if (!bgm?.src) return;
+                    if (!bgm?.src || !bgmEnabled.value) {
+                        bgmPlaying.value = false;
+                        return;
+                    }
                     bgmAudio.value = new Audio(bgm.src);
                     bgmAudio.value.loop = true;
                     bgmAudio.value.volume = bgmVolume.value / 100;
@@ -236,33 +237,74 @@
                 const handleTileClick=async t=>{if(isProcessing.value)return;if(!selectedTile.value){selectedTile.value=t;playSfx('click');return}const{row:r1,col:c1}=selectedTile.value;const{row:r2,col:c2}=t;if(Math.abs(r1-r2)+Math.abs(c1-c2)===1){isProcessing.value=!0;movesUsed.value++;const i1=r1*boardSize+c1;const i2=r2*boardSize+c2;[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];await nextTick();const m=checkMatches(gameBoard.value);if(m.length>0){playSfx('swap');selectedTile.value=null;await processMatches()}else{playSfx('error');await new Promise(r=>setTimeout(r,300));[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];selectedTile.value=t}isProcessing.value=!1}else{playSfx('error');selectedTile.value=t}};
 
                 const startGame = () => {
-                    playSfx('click'); // 确保能播放
+                    playSfx('click');
                     gameStarted.value = true;
                     resetGame();
-                    playBgm(bgmList.value[0]);
+                    playBgm(bgmList.value.find(b => b.id === currentBgmId.value));
                 };
-                const restartGame = () => { playSfx('click'); resetGame(); };
-                const togglePause = () => { isPaused.value = !isPaused.value; if(isPaused.value) { bgmAudio.value?.pause(); if(gameTimer.value) clearInterval(gameTimer.value); } else { bgmAudio.value?.play(); gameTimer.value = setInterval(() => { gameTime.value++; }, 1000); } };
-                const toggleBgm = () => { bgmPlaying.value ? bgmAudio.value?.pause() : bgmAudio.value?.play(); bgmPlaying.value = !bgmPlaying.value; };
-                const toggleSfx = () => sfxEnabled.value = !sfxEnabled.value;
-                const switchBgm = (bgm) => playBgm(bgm);
-                const openSettings = () => showSettings.value = true;
-                const closeSettings = () => showSettings.value = false;
-                const resetSettings = () => { bgmVolume.value = 50; sfxVolumePercent.value = 70; updateBgmVolume(); updateSfxVolume(); };
+                const restartGame = () => {
+                    playSfx('click');
+                    resetGame();
+                };
+                const togglePause = () => {
+                    playSfx('click');
+                    isPaused.value = !isPaused.value;
+                    if(isPaused.value) {
+                        bgmAudio.value?.pause();
+                        if(gameTimer.value) clearInterval(gameTimer.value);
+                    } else {
+                        if(bgmEnabled.value) bgmAudio.value?.play();
+                        gameTimer.value = setInterval(() => { gameTime.value++; }, 1000);
+                    }
+                };
+                const toggleBgm = () => {
+                    playSfx('click');
+                    bgmEnabled.value = !bgmEnabled.value;
+                    localStorage.setItem('bgm_enabled', bgmEnabled.value);
+                    if (bgmEnabled.value) {
+                        playBgm(bgmList.value.find(b => b.id === currentBgmId.value));
+                    } else {
+                        bgmAudio.value?.pause();
+                        bgmPlaying.value = false;
+                    }
+                };
+                const toggleSfx = () => {
+                    sfxEnabled.value = !sfxEnabled.value;
+                    localStorage.setItem('sfx_enabled', sfxEnabled.value);
+                    playSfx('click');
+                };
+                const switchBgm = (bgm) => {
+                    playSfx('click');
+                    if (currentBgmId.value === bgm.id) return;
+                    currentBgmId.value = bgm.id;
+                    playBgm(bgm);
+                };
+                const openSettings = () => {
+                    playSfx('click');
+                    showSettings.value = true;
+                };
+                const closeSettings = () => {
+                    playSfx('click');
+                    showSettings.value = false;
+                };
+                const resetSettings = () => {
+                    playSfx('click');
+                    bgmVolume.value = 50;
+                    sfxVolumePercent.value = 70;
+                    updateBgmVolume();
+                    updateSfxVolume();
+                };
                 
                 onMounted(async () => {
-                    // 恢复设置
+                    // 恢复用户偏好设置
                     bgmVolume.value = parseInt(localStorage.getItem('bgm_volume') || '50');
                     sfxVolumePercent.value = parseInt(localStorage.getItem('sfx_volume') || '70');
+                    bgmEnabled.value = localStorage.getItem('bgm_enabled') !== 'false'; // 默认为true
+                    sfxEnabled.value = localStorage.getItem('sfx_enabled') !== 'false'; // 默认为true
 
                     // 预加载所有关键资源
-                    const assetsToLoad = [
-                        ...Object.values(sfxMap),
-                        ...bgmList.value.map(b => b.src)
-                    ];
-                    for (let i = 1; i <= tileTypes; i++) {
-                        assetsToLoad.push(getTileImage(i));
-                    }
+                    const assetsToLoad = [ ...Object.values(sfxMap), ...bgmList.value.map(b => b.src) ];
+                    for (let i = 1; i <= tileTypes; i++) assetsToLoad.push(getTileImage(i));
 
                     await Promise.all(assetsToLoad.map(src => new Promise(resolve => {
                         if (src.includes('.webp')) {
@@ -270,9 +312,10 @@
                             img.onload = img.onerror = resolve;
                             img.src = src;
                         } else {
-                            // 对于音频，我们创建一个Audio对象并缓存它
                             const audio = new Audio(src);
-                            sfxCache.set(src.split('/').pop().split('.')[0], audio); // 缓存起来
+                            // 将创建的audio实例放入缓存，以便playSfx直接使用
+                            const name = src.split('/').pop().split('.')[0];
+                            sfxCache.set(name, audio);
                             audio.oncanplaythrough = audio.onerror = resolve;
                         }
                     })));
@@ -282,7 +325,7 @@
 
                 onUnmounted(() => { if (gameTimer.value) clearInterval(gameTimer.value); });
                 
-                return { gameStarted, showGameOver, score, movesUsed, formattedTime, gameBoard, selectedTile, showMessage, message, messageType, showChainEffect, chainCount, bgmPlaying, sfxEnabled, bgmList, currentBgmId, showLoading, showSettings, bgmVolume, sfxVolumePercent, particles, isPaused, boardStyle, flatBoard, getTileSymbol, getTileImage, getTileClasses, hasImage, handleImageError, handleOutsideClick: () => selectedTile.value = null, startGame, restartGame, toggleBgm, toggleSfx, switchBgm, updateBgmVolume, updateSfxVolume, resetSettings, openSettings, closeSettings, togglePause, handleTileClick };
+                return { gameStarted, showGameOver, score, movesUsed, formattedTime, gameBoard, selectedTile, showMessage, message, messageType, showChainEffect, chainCount, bgmPlaying, bgmEnabled, sfxEnabled, bgmList, currentBgmId, showLoading, showSettings, bgmVolume, sfxVolumePercent, particles, isPaused, boardStyle, flatBoard, getTileSymbol, getTileImage, getTileClasses, hasImage, handleImageError, handleOutsideClick: () => selectedTile.value = null, startGame, restartGame, toggleBgm, toggleSfx, switchBgm, updateBgmVolume, updateSfxVolume, resetSettings, openSettings, closeSettings, togglePause, handleTileClick };
             }
         }).mount('#app');
     </script>
