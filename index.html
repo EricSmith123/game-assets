@@ -249,16 +249,18 @@ const isAudioUnlocked = ref(false);
 
                 // --- 数据定义 (根据截图修正路径) ---
                 const bgmList = ref([
-                    { id: 1, name: "轻松BGM", src: './audio/bgm/bgm_1.mp3' },
-                    { id: 2, name: "活泼BGM", src: './audio/bgm/bgm_2.mp3' }
+                    // 已修改：使用根相对路径
+                    { id: 1, name: "轻松BGM", src: '/audio/bgm/bgm_1.mp3' },
+                    { id: 2, name: "活泼BGM", src: '/audio/bgm/bgm_2.mp3' }
                 ]);
 const sfxMap = {
-                    click: './audio/sfx/click.mp3', swap: './audio/sfx/swap.mp3',
-                    match: './audio/sfx/match.mp3', error: './audio/sfx/error.mp3',
-                    fall: './audio/sfx/fall.mp3', nomove: './audio/sfx/nomove.mp3',
-                    countdown: './audio/sfx/countdown.mp3', lose: './audio/sfx/lose.mp3',
+                    // 已修改：全部使用根相对路径
+                    click: '/audio/sfx/click.mp3', swap: '/audio/sfx/swap.mp3',
+                    match: '/audio/sfx/match.mp3', error: '/audio/sfx/error.mp3',
+                    fall: '/audio/sfx/fall.mp3', nomove: '/audio/sfx/nomove.mp3',
+                    countdown: '/audio/sfx/countdown.mp3', lose: '/audio/sfx/lose.mp3',
      
-               win: './audio/sfx/win.mp3'
+               win: '/audio/sfx/win.mp3'
                 };
 // --- 计算属性 ---
                 const formattedTime = computed(() => {
