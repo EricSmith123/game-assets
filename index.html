@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>熊熊消消乐 - 独立版</title>
+    <title>熊熊消消乐</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,8 +33,6 @@
         .game-tile img { width: 85%; height: 85%; object-fit: contain; pointer-events: none; }
         .game-tile:hover { transform: scale(1.05); }
         .game-tile.selected { transform: scale(1.1); box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); border: 3px solid gold; }
-        .game-tile.matched { animation: matchPulse 0.3s ease; }
-        .game-tile.shake { animation: shake 0.4s ease; }
         .message-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; z-index: 100; animation: fadeInOut 1.2s ease; }
         .message-box.error { background: rgba(255, 107, 107, 0.9); }
         .message-box.success { background: rgba(67, 233, 123, 0.9); }
@@ -56,11 +54,6 @@
         .loading-content { text-align: center; color: white; max-width: 400px; padding: 40px; }
         .loading-spinner { width: 60px; height: 60px; border: 4px solid rgba(255, 255, 255, 0.3); border-top: 4px solid white; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 30px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loading-progress { margin: 30px 0; }
-        .progress-bar { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.3); border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); border-radius: 4px; transition: width 0.3s ease; }
-        .progress-text { font-size: 18px; font-weight: bold; }
-        .loading-tips { margin-top: 20px; font-size: 14px; opacity: 0.9; }
         .settings-btn { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.9); border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s ease; z-index: 1001; }
         .settings-btn:hover { background: white; transform: translateY(-2px); }
         .settings-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 2000; }
@@ -75,24 +68,12 @@
         .close-btn { background: #4ecdc4; color: white; }
         .settings-actions button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
         @media (min-width: 768px) { .game-container { max-width: 600px; max-height: 800px; } .game-board { width: 450px; height: 450px; } .top-controls { height: 70px; padding: 15px 20px; } .bgm-btn { padding: 8px 14px; font-size: 13px; } .audio-btn { min-width: 40px; min-height: 40px; } .game-content { padding: 80px 30px 30px 30px; } }
-        @media (min-width: 1200px) { .game-container { max-width: 700px; max-height: 900px; } .game-board { width: 500px; height: 500px; } }
-        @media (max-width: 480px) { body { padding: 5px; } .game-container { margin: 5px; border-radius: 15px; max-width: 98vw; max-height: 98vh; } .game-board { width: min(85vw, 350px); height: min(85vw, 350px); } .top-controls { height: 50px; padding: 8px 12px; } .bgm-btn { padding: 5px 8px; font-size: 10px; } .audio-btn { min-width: 28px; min-height: 28px; font-size: 12px; padding: 6px; } .pause-btn { padding: 6px 10px; font-size: 11px; } .game-content { padding: 60px 15px 15px 15px; } }
-        @media (max-width: 360px) { .game-board { width: min(80vw, 300px); height: min(80vw, 300px); } .bgm-btn { padding: 4px 6px; font-size: 9px; } }
-        @media (orientation: landscape) and (max-height: 500px) { body { align-items: flex-start; padding-top: 10px; } .game-container { max-height: 95vh; } .game-board { width: min(40vh, 350px); height: min(40vh, 350px); } }
     </style>
 </head>
 <body>
     <div id="app">
         <div v-if="showLoading" class="loading-overlay">
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <h2>🎮 游戏加载中...</h2>
-                <div class="loading-progress">
-                    <div class="progress-bar"><div class="progress-fill" :style="{ width: loadingProgress + '%' }"></div></div>
-                    <div class="progress-text">{{ Math.round(loadingProgress) }}%</div>
-                </div>
-                <div class="loading-tips"><p>{{ loadingTip }}</p></div>
-            </div>
+            <div class="loading-content"><div class="loading-spinner"></div><h2>🎮 游戏资源加载中...</h2></div>
         </div>
         <div v-if="showSettings" class="settings-panel">
             <div class="settings-content">
@@ -124,9 +105,9 @@
                 <div class="score-info"><div class="score-box"><span class="score-label">分数</span><span class="score-value">{{ score }}</span></div><div class="score-box"><span class="score-label">步数</span><span class="score-value">{{ movesUsed }}</span></div><div class="score-box"><span class="score-label">时间</span><span class="score-value">{{ formattedTime }}</span></div></div>
                 <div class="game-board-container">
                     <div class="game-board" :style="boardStyle" @click="handleOutsideClick">
-                        <div v-for="tile in flatBoard" :key="tile.id" class="game-tile" :class="getTileClasses(tile)" @click.stop="debouncedTileClick(tile)">
+                        <div v-for="tile in flatBoard" :key="tile.id" class="game-tile" :class="getTileClasses(tile)" @click.stop="handleTileClick(tile)">
                             <img v-if="hasImage(tile.type)" :src="getTileImage(tile.type)" :alt="getTileSymbol(tile.type)" @error="handleImageError" />
-                            <span v-else>{{ getTileSymbol(tile.type) }}</span>
+                            <span v-else>❓</span>
                         </div>
                     </div>
                     <div v-if="showMessage" class="message-box" :class="messageType">{{ message }}</div>
@@ -142,23 +123,22 @@
         createApp({
             setup() {
                 // --- 配置区 ---
-                const CDN_URL = 'https://cdn.jsdelivr.net/gh/EricSmith123/game-assets@main';
                 const boardSize = 8;
                 const tileTypes = 6;
+
                 // --- 状态变量 ---
                 const gameStarted = ref(false);
                 const showGameOver = ref(false);
                 const isPaused = ref(false);
                 const showSettings = ref(false);
                 const showLoading = ref(true);
-                const loadingProgress = ref(0);
                 const score = ref(0);
                 const movesUsed = ref(0);
                 const gameTime = ref(0);
                 const gameTimer = ref(null);
                 const gameBoard = ref([]);
                 const selectedTile = ref(null);
-                const isProcessing = ref(false); // 合并 isSwapping 和 isChecking
+                const isProcessing = ref(false);
                 const chainCount = ref(0);
                 const particles = ref([]);
                 const showMessage = ref(false);
@@ -171,178 +151,66 @@
                 const bgmVolume = ref(50);
                 const sfxVolumePercent = ref(70);
                 const imageLoadErrors = ref(new Set());
-                // --- 轻量化音频管理器 ---
                 const bgmAudio = ref(null);
                 const sfxCache = new Map();
-                // --- 数据定义 ---
+
+                // --- 数据定义 (使用相对路径) ---
                 const bgmList = ref([
-                    { id: 1, name: "轻松BGM", src: `${CDN_URL}/audio/bgm/bgm_1.mp3` },
-                    { id: 2, name: "活泼BGM", src: `${CDN_URL}/audio/bgm/bgm_2.mp3` }
+                    { id: 1, name: "轻松BGM", src: './assets/audio/bgm/bgm_1.mp3' },
+                    { id: 2, name: "活泼BGM", src: './assets/audio/bgm/bgm_2.mp3' }
                 ]);
                 const sfxMap = {
-                    click: `${CDN_URL}/audio/sfx/click.mp3`, swap: `${CDN_URL}/audio/sfx/swap.mp3`,
-                    match: `${CDN_URL}/audio/sfx/match.mp3`, error: `${CDN_URL}/audio/sfx/error.mp3`,
-                    fall: `${CDN_URL}/audio/sfx/fall.mp3`, nomove: `${CDN_URL}/audio/sfx/nomove.mp3`
+                    click: './assets/audio/sfx/click.mp3', swap: './assets/audio/sfx/swap.mp3',
+                    match: './assets/audio/sfx/match.mp3', error: './assets/audio/sfx/error.mp3',
+                    fall: './assets/audio/sfx/fall.mp3', nomove: './assets/audio/sfx/nomove.mp3'
                 };
+                
                 // --- 计算属性 ---
                 const formattedTime = computed(() => {
                     const minutes = Math.floor(gameTime.value / 60);
                     const seconds = gameTime.value % 60;
                     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 });
-                const loadingTip = computed(() => {
-                    if (loadingProgress.value < 50) return '正在连接资源服务器...';
-                    if (loadingProgress.value < 95) return '正在加载游戏资源...';
-                    return '即将完成...';
-                });
                 const boardStyle = computed(() => ({ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }));
                 const flatBoard = computed(() => gameBoard.value.flat());
-                // --- 音频核心方法 ---
-                const playSfx = (name) => {
-                    if (!sfxEnabled.value || !sfxMap[name]) return;
-                    try {
-                        let audio = sfxCache.get(name);
-                        if (!audio) {
-                            audio = new Audio(sfxMap[name]);
-                            sfxCache.set(name, audio);
-                        }
-                        audio.currentTime = 0;
-                        audio.volume = sfxVolumePercent.value / 100;
-                        audio.play().catch(e => {}); // 静默处理播放错误
-                    } catch(e) {}
-                };
-                const playBgm = (bgm) => {
-                    bgmAudio.value?.pause();
-                    if (!bgm?.src) return;
-                    bgmAudio.value = new Audio(bgm.src);
-                    bgmAudio.value.loop = true;
-                    updateBgmVolume();
-                    bgmAudio.value.play()
-                        .then(() => bgmPlaying.value = true)
-                        .catch(() => bgmPlaying.value = false);
-                    currentBgmId.value = bgm.id;
-                };
-                const updateBgmVolume = () => {
-                    if(bgmAudio.value) bgmAudio.value.volume = bgmVolume.value / 100;
-                    localStorage.setItem('bgm_volume', bgmVolume.value);
-                };
-                const updateSfxVolume = () => localStorage.setItem('sfx_volume', sfxVolumePercent.value);
-                // --- 游戏核心方法 ---
-                const getTileImage = (type) => `${CDN_URL}/tiles/tile-${type}.webp`;
-                const getTileSymbol = (type) => "❓"; // 仅用于alt属性，不应显示
+
+                // --- 核心方法 ---
+                const getTileImage = (type) => `./assets/images/tile-${type}.webp`;
+                const getTileSymbol = (type) => "❓";
                 const hasImage = (type) => !imageLoadErrors.value.has(type);
                 const handleImageError = (e) => {
                     const match = e.target.src.match(/tile-(\d+)\.webp/);
                     if (match) imageLoadErrors.value.add(parseInt(match[1]));
                 };
-                const getTileClasses = (tile) => ({
-                    'selected': selectedTile.value?.id === tile.id,
-                    'shake': selectedTile.value?.id === tile.id, // 简化，合并shake逻辑
-                });
-                const showMessageTip = (msg, type = 'info', duration = 1200) => {
-                    message.value = msg;
-                    messageType.value = type;
-                    showMessage.value = true;
-                    setTimeout(() => showMessage.value = false, duration);
-                };
-                const checkMatches = (board) => {
-                    const matches = new Set();
-                    const checkLine = (line) => {
-                        for (let i = 0; i <= line.length - 3; i++) {
-                            if (line[i].type && line[i].type === line[i+1].type && line[i].type === line[i+2].type) {
-                                matches.add(line[i].id).add(line[i+1].id).add(line[i+2].id);
-                            }
-                        }
-                    };
-                    for (let r = 0; r < boardSize; r++) checkLine(board.slice(r * boardSize, (r + 1) * boardSize));
-                    for (let c = 0; c < boardSize; c++) {
-                        const column = Array.from({ length: boardSize }, (_, r) => board[r * boardSize + c]);
-                        checkLine(column);
-                    }
-                    return Array.from(matches);
-                };
-                const processMatches = async () => {
-                    isProcessing.value = true;
-                    let matchesFound = checkMatches(gameBoard.value);
-                    while (matchesFound.length > 0) {
-                        chainCount.value++;
-                        score.value += matchesFound.length * 10 * chainCount.value;
-                        if(chainCount.value > 1) {
-                            showMessageTip(`连锁反应 x${chainCount.value}!`, 'chain');
-                            showChainEffect.value = true;
-                            setTimeout(() => showChainEffect.value = false, 1000);
-                        }
-                        playSfx('match');
-                        
-                        // 标记并移除
-                        matchesFound.forEach(id => {
-                            const tile = gameBoard.value.find(t => t.id === id);
-                            if (tile) tile.type = 0;
-                        });
-                        await new Promise(r => setTimeout(r, 200));
+                const getTileClasses = (tile) => ({ 'selected': selectedTile.value?.id === tile.id });
 
-                        // 方块掉落
-                        playSfx('fall');
-                        for (let c = 0; c < boardSize; c++) {
-                            let emptyRow = boardSize - 1;
-                            for (let r = boardSize - 1; r >= 0; r--) {
-                                const tile = gameBoard.value[r * boardSize + c];
-                                if (tile.type !== 0) {
-                                    if (emptyRow !== r) {
-                                        gameBoard.value[emptyRow * boardSize + c].type = tile.type;
-                                        tile.type = 0;
-                                    }
-                                    emptyRow--;
-                                }
-                            }
-                        }
-                        await new Promise(r => setTimeout(r, 200));
-                        
-                        // 填充新方块
-                        gameBoard.value.forEach(tile => {
-                            if (tile.type === 0) tile.type = Math.floor(Math.random() * tileTypes) + 1;
-                        });
-                        
-                        matchesFound = checkMatches(gameBoard.value);
+                const playSfx = (name) => {
+                    if (!sfxEnabled.value || !sfxMap[name]) return;
+                    let audio = sfxCache.get(name);
+                    if (!audio) {
+                        audio = new Audio(sfxMap[name]);
+                        sfxCache.set(name, audio);
                     }
-                    chainCount.value = 0;
-                    isProcessing.value = false;
+                    audio.currentTime = 0;
+                    audio.volume = sfxVolumePercent.value / 100;
+                    audio.play().catch(()=>{});
                 };
-                const handleTileClick = async (tile) => {
-                    if (isProcessing.value) return;
-                    if (!selectedTile.value) {
-                        selectedTile.value = tile;
-                        playSfx('click');
-                        return;
-                    }
-                    const { row: r1, col: c1 } = selectedTile.value;
-                    const { row: r2, col: c2 } = tile;
-                    if (Math.abs(r1 - r2) + Math.abs(c1 - c2) === 1) {
-                        isProcessing.value = true;
-                        movesUsed.value++;
-                        // 交换
-                        const idx1 = r1 * boardSize + c1;
-                        const idx2 = r2 * boardSize + c2;
-                        [gameBoard.value[idx1].type, gameBoard.value[idx2].type] = [gameBoard.value[idx2].type, gameBoard.value[idx1].type];
-                        
-                        await nextTick();
-                        const matches = checkMatches(gameBoard.value);
-                        if (matches.length > 0) {
-                            playSfx('swap');
-                            selectedTile.value = null;
-                            await processMatches();
-                        } else {
-                            playSfx('error');
-                            await new Promise(r => setTimeout(r, 300));
-                            [gameBoard.value[idx1].type, gameBoard.value[idx2].type] = [gameBoard.value[idx2].type, gameBoard.value[idx1].type]; // 换回来
-                            selectedTile.value = tile; // 选中当前点击的
-                        }
-                        isProcessing.value = false;
-                    } else {
-                        playSfx('error');
-                        selectedTile.value = tile; // 选中新的
-                    }
+
+                const playBgm = (bgm) => {
+                    bgmAudio.value?.pause();
+                    if (!bgm?.src) return;
+                    bgmAudio.value = new Audio(bgm.src);
+                    bgmAudio.value.loop = true;
+                    bgmAudio.value.volume = bgmVolume.value / 100;
+                    bgmAudio.value.play()
+                        .then(() => bgmPlaying.value = true)
+                        .catch(() => bgmPlaying.value = false);
+                    currentBgmId.value = bgm.id;
                 };
+
+                const updateBgmVolume = () => { if(bgmAudio.value) bgmAudio.value.volume = bgmVolume.value / 100; localStorage.setItem('bgm_volume', bgmVolume.value); };
+                const updateSfxVolume = () => localStorage.setItem('sfx_volume', sfxVolumePercent.value);
+                
                 const resetGame = () => {
                     score.value = 0;
                     movesUsed.value = 0;
@@ -352,6 +220,7 @@
                     selectedTile.value = null;
                     if(gameTimer.value) clearInterval(gameTimer.value);
                     gameTimer.value = setInterval(() => { if (!isPaused.value) gameTime.value++; }, 1000);
+                    
                     const newBoard = [];
                     for (let r = 0; r < boardSize; r++) {
                         for (let c = 0; c < boardSize; c++) {
@@ -359,58 +228,61 @@
                         }
                     }
                     gameBoard.value = newBoard;
-                    processMatches(); // 用它来初始化棋盘并消除初始匹配
+                    processMatches();
                 };
+
+                const checkMatches=(b)=>{const m=new Set;const cL=l=>{for(let i=0;i<=l.length-3;i++)if(l[i].type&&l[i].type===l[i+1].type&&l[i].type===l[i+2].type)m.add(l[i].id).add(l[i+1].id).add(l[i+2].id)};for(let r=0;r<boardSize;r++)cL(b.slice(r*boardSize,(r+1)*boardSize));for(let c=0;c<boardSize;c++){const o=Array.from({length:boardSize},(_,r)=>b[r*boardSize+c]);cL(o)}return Array.from(m)};
+                const processMatches=async()=>{isProcessing.value=!0;let m=checkMatches(gameBoard.value);while(m.length>0){chainCount.value++;score.value+=m.length*10*chainCount.value;if(chainCount.value>1){showMessage.value=!0;message.value=`连锁反应 x${chainCount.value}!`;messageType.value='chain';showChainEffect.value=!0;setTimeout(()=>{showChainEffect.value=!1},1e3)}playSfx('match');m.forEach(i=>{const t=gameBoard.value.find(t=>t.id===i);if(t)t.type=0});await new Promise(r=>setTimeout(r,200));playSfx('fall');for(let c=0;c<boardSize;c++){let e=boardSize-1;for(let r=boardSize-1;r>=0;r--){const t=gameBoard.value[r*boardSize+c];if(t.type!==0){if(e!==r){gameBoard.value[e*boardSize+c].type=t.type;t.type=0}e--}}}await new Promise(r=>setTimeout(r,200));gameBoard.value.forEach(t=>{if(t.type===0)t.type=Math.floor(Math.random()*tileTypes)+1});m=checkMatches(gameBoard.value)}chainCount.value=0;isProcessing.value=!1};
+                const handleTileClick=async t=>{if(isProcessing.value)return;if(!selectedTile.value){selectedTile.value=t;playSfx('click');return}const{row:r1,col:c1}=selectedTile.value;const{row:r2,col:c2}=t;if(Math.abs(r1-r2)+Math.abs(c1-c2)===1){isProcessing.value=!0;movesUsed.value++;const i1=r1*boardSize+c1;const i2=r2*boardSize+c2;[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];await nextTick();const m=checkMatches(gameBoard.value);if(m.length>0){playSfx('swap');selectedTile.value=null;await processMatches()}else{playSfx('error');await new Promise(r=>setTimeout(r,300));[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];selectedTile.value=t}isProcessing.value=!1}else{playSfx('error');selectedTile.value=t}};
+
                 const startGame = () => {
+                    playSfx('click'); // 确保能播放
                     gameStarted.value = true;
                     resetGame();
                     playBgm(bgmList.value[0]);
                 };
-                const restartGame = () => {
-                    playSfx('click');
-                    resetGame();
-                };
-                const togglePause = () => {
-                    isPaused.value = !isPaused.value;
-                    if(isPaused.value) {
-                        bgmAudio.value?.pause();
-                        if(gameTimer.value) clearInterval(gameTimer.value);
-                    } else {
-                        bgmAudio.value?.play();
-                        gameTimer.value = setInterval(() => { gameTime.value++; }, 1000);
-                    }
-                };
-                const toggleBgm = () => bgmPlaying.value ? bgmAudio.value?.pause() : bgmAudio.value?.play();
+                const restartGame = () => { playSfx('click'); resetGame(); };
+                const togglePause = () => { isPaused.value = !isPaused.value; if(isPaused.value) { bgmAudio.value?.pause(); if(gameTimer.value) clearInterval(gameTimer.value); } else { bgmAudio.value?.play(); gameTimer.value = setInterval(() => { gameTime.value++; }, 1000); } };
+                const toggleBgm = () => { bgmPlaying.value ? bgmAudio.value?.pause() : bgmAudio.value?.play(); bgmPlaying.value = !bgmPlaying.value; };
                 const toggleSfx = () => sfxEnabled.value = !sfxEnabled.value;
                 const switchBgm = (bgm) => playBgm(bgm);
                 const openSettings = () => showSettings.value = true;
                 const closeSettings = () => showSettings.value = false;
-                const resetSettings = () => {
-                    bgmVolume.value = 50;
-                    sfxVolumePercent.value = 70;
-                    updateBgmVolume();
-                    updateSfxVolume();
-                };
+                const resetSettings = () => { bgmVolume.value = 50; sfxVolumePercent.value = 70; updateBgmVolume(); updateSfxVolume(); };
+                
                 onMounted(async () => {
-                    // 初始化设置
+                    // 恢复设置
                     bgmVolume.value = parseInt(localStorage.getItem('bgm_volume') || '50');
                     sfxVolumePercent.value = parseInt(localStorage.getItem('sfx_volume') || '70');
-                    // 预加载资源
-                    const assets = [...Object.values(sfxMap), ...bgmList.value.map(b => b.src)];
-                    for(let i = 1; i <= tileTypes; i++) assets.push(getTileImage(i));
-                    await Promise.all(assets.map((src, i) => new Promise(resolve => {
-                        const el = src.includes('tiles') ? new Image() : new Audio();
-                        el.onload = el.oncanplaythrough = el.onerror = () => {
-                            loadingProgress.value = ((i + 1) / assets.length) * 100;
-                            resolve();
-                        };
-                        el.src = src;
+
+                    // 预加载所有关键资源
+                    const assetsToLoad = [
+                        ...Object.values(sfxMap),
+                        ...bgmList.value.map(b => b.src)
+                    ];
+                    for (let i = 1; i <= tileTypes; i++) {
+                        assetsToLoad.push(getTileImage(i));
+                    }
+
+                    await Promise.all(assetsToLoad.map(src => new Promise(resolve => {
+                        if (src.includes('.webp')) {
+                            const img = new Image();
+                            img.onload = img.onerror = resolve;
+                            img.src = src;
+                        } else {
+                            // 对于音频，我们创建一个Audio对象并缓存它
+                            const audio = new Audio(src);
+                            sfxCache.set(src.split('/').pop().split('.')[0], audio); // 缓存起来
+                            audio.oncanplaythrough = audio.onerror = resolve;
+                        }
                     })));
+
                     showLoading.value = false;
                 });
+
                 onUnmounted(() => { if (gameTimer.value) clearInterval(gameTimer.value); });
-                // 返回所有需要暴露给模板的变量和方法
-                return { gameStarted, showGameOver, score, movesUsed, formattedTime, gameBoard, selectedTile, isProcessing, showMessage, message, messageType, showChainEffect, chainCount, bgmPlaying, sfxEnabled, bgmList, currentBgmId, showLoading, loadingProgress, showSettings, bgmVolume, sfxVolumePercent, particles, isPaused, boardStyle, flatBoard, loadingTip, getTileSymbol, getTileImage, getTileClasses, hasImage, handleImageError, handleOutsideClick: () => selectedTile.value = null, startGame, restartGame, toggleBgm, toggleSfx, switchBgm, updateBgmVolume, updateSfxVolume, resetSettings, openSettings, closeSettings, togglePause, debouncedTileClick: handleTileClick };
+                
+                return { gameStarted, showGameOver, score, movesUsed, formattedTime, gameBoard, selectedTile, showMessage, message, messageType, showChainEffect, chainCount, bgmPlaying, sfxEnabled, bgmList, currentBgmId, showLoading, showSettings, bgmVolume, sfxVolumePercent, particles, isPaused, boardStyle, flatBoard, getTileSymbol, getTileImage, getTileClasses, hasImage, handleImageError, handleOutsideClick: () => selectedTile.value = null, startGame, restartGame, toggleBgm, toggleSfx, switchBgm, updateBgmVolume, updateSfxVolume, resetSettings, openSettings, closeSettings, togglePause, handleTileClick };
             }
         }).mount('#app');
     </script>
