@@ -143,14 +143,15 @@
                 const messageType = ref('info');
                 const showChainEffect = ref(false);
                 const bgmPlaying = ref(false);
-                const bgmEnabled = ref(true); // 新增：BGM开关状态
-                const sfxEnabled = ref(true); // 音效开关状态
+                const bgmEnabled = ref(true);
+                const sfxEnabled = ref(true);
                 const currentBgmId = ref(1);
                 const bgmVolume = ref(50);
                 const sfxVolumePercent = ref(70);
                 const imageLoadErrors = ref(new Set());
                 const bgmAudio = ref(null);
                 const sfxCache = new Map();
+                const isAudioUnlocked = ref(false);
 
                 // --- 数据定义 (使用正确的相对路径) ---
                 const bgmList = ref([
@@ -181,17 +182,22 @@
                     if (match) imageLoadErrors.value.add(parseInt(match[1]));
                 };
                 const getTileClasses = (tile) => ({ 'selected': selectedTile.value?.id === tile.id });
-                
+
+                const unlockAudio = () => {
+                    if (isAudioUnlocked.value) return;
+                    const silentSound = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABgAZGF0YQAAAAA=');
+                    silentSound.play().catch(() => {});
+                    isAudioUnlocked.value = true;
+                };
+
                 const playSfx = (name) => {
                     if (!sfxEnabled.value || !sfxMap[name]) return;
-                    let audio = sfxCache.get(name);
-                    if (!audio) {
-                        // 在预加载时已经创建并缓存了，这里理论上总能找到
-                        return;
+                    const audio = sfxCache.get(name);
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.volume = sfxVolumePercent.value / 100;
+                        audio.play().catch(()=>{});
                     }
-                    audio.currentTime = 0;
-                    audio.volume = sfxVolumePercent.value / 100;
-                    audio.play().catch(()=>{});
                 };
 
                 const playBgm = (bgm) => {
@@ -200,12 +206,13 @@
                         bgmPlaying.value = false;
                         return;
                     }
-                    bgmAudio.value = new Audio(bgm.src);
-                    bgmAudio.value.loop = true;
-                    bgmAudio.value.volume = bgmVolume.value / 100;
-                    bgmAudio.value.play()
+                    const newBgm = new Audio(bgm.src);
+                    newBgm.loop = true;
+                    newBgm.volume = bgmVolume.value / 100;
+                    newBgm.play()
                         .then(() => bgmPlaying.value = true)
                         .catch(() => bgmPlaying.value = false);
+                    bgmAudio.value = newBgm;
                     currentBgmId.value = bgm.id;
                 };
 
@@ -213,15 +220,10 @@
                 const updateSfxVolume = () => localStorage.setItem('sfx_volume', sfxVolumePercent.value);
                 
                 const resetGame = () => {
-                    score.value = 0;
-                    movesUsed.value = 0;
-                    gameTime.value = 0;
-                    isPaused.value = false;
-                    showGameOver.value = false;
-                    selectedTile.value = null;
+                    score.value = 0; movesUsed.value = 0; gameTime.value = 0; isPaused.value = false;
+                    showGameOver.value = false; selectedTile.value = null;
                     if(gameTimer.value) clearInterval(gameTimer.value);
                     gameTimer.value = setInterval(() => { if (!isPaused.value) gameTime.value++; }, 1000);
-                    
                     const newBoard = [];
                     for (let r = 0; r < boardSize; r++) {
                         for (let c = 0; c < boardSize; c++) {
@@ -237,85 +239,39 @@
                 const handleTileClick=async t=>{if(isProcessing.value)return;if(!selectedTile.value){selectedTile.value=t;playSfx('click');return}const{row:r1,col:c1}=selectedTile.value;const{row:r2,col:c2}=t;if(Math.abs(r1-r2)+Math.abs(c1-c2)===1){isProcessing.value=!0;movesUsed.value++;const i1=r1*boardSize+c1;const i2=r2*boardSize+c2;[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];await nextTick();const m=checkMatches(gameBoard.value);if(m.length>0){playSfx('swap');selectedTile.value=null;await processMatches()}else{playSfx('error');await new Promise(r=>setTimeout(r,300));[gameBoard.value[i1].type,gameBoard.value[i2].type]=[gameBoard.value[i2].type,gameBoard.value[i1].type];selectedTile.value=t}isProcessing.value=!1}else{playSfx('error');selectedTile.value=t}};
 
                 const startGame = () => {
+                    unlockAudio();
                     playSfx('click');
                     gameStarted.value = true;
                     resetGame();
                     playBgm(bgmList.value.find(b => b.id === currentBgmId.value));
                 };
-                const restartGame = () => {
-                    playSfx('click');
-                    resetGame();
-                };
-                const togglePause = () => {
-                    playSfx('click');
-                    isPaused.value = !isPaused.value;
-                    if(isPaused.value) {
-                        bgmAudio.value?.pause();
-                        if(gameTimer.value) clearInterval(gameTimer.value);
-                    } else {
-                        if(bgmEnabled.value) bgmAudio.value?.play();
-                        gameTimer.value = setInterval(() => { gameTime.value++; }, 1000);
-                    }
-                };
-                const toggleBgm = () => {
-                    playSfx('click');
-                    bgmEnabled.value = !bgmEnabled.value;
-                    localStorage.setItem('bgm_enabled', bgmEnabled.value);
-                    if (bgmEnabled.value) {
-                        playBgm(bgmList.value.find(b => b.id === currentBgmId.value));
-                    } else {
-                        bgmAudio.value?.pause();
-                        bgmPlaying.value = false;
-                    }
-                };
-                const toggleSfx = () => {
-                    sfxEnabled.value = !sfxEnabled.value;
-                    localStorage.setItem('sfx_enabled', sfxEnabled.value);
-                    playSfx('click');
-                };
-                const switchBgm = (bgm) => {
-                    playSfx('click');
-                    if (currentBgmId.value === bgm.id) return;
-                    currentBgmId.value = bgm.id;
-                    playBgm(bgm);
-                };
-                const openSettings = () => {
-                    playSfx('click');
-                    showSettings.value = true;
-                };
-                const closeSettings = () => {
-                    playSfx('click');
-                    showSettings.value = false;
-                };
-                const resetSettings = () => {
-                    playSfx('click');
-                    bgmVolume.value = 50;
-                    sfxVolumePercent.value = 70;
-                    updateBgmVolume();
-                    updateSfxVolume();
-                };
+                const restartGame = () => { playSfx('click'); resetGame(); };
+                const togglePause = () => { playSfx('click'); isPaused.value = !isPaused.value; if(isPaused.value) { bgmAudio.value?.pause(); if(gameTimer.value) clearInterval(gameTimer.value); } else { if(bgmEnabled.value) bgmAudio.value?.play(); gameTimer.value = setInterval(() => { gameTime.value++; }, 1000); } };
+                const toggleBgm = () => { playSfx('click'); bgmEnabled.value = !bgmEnabled.value; localStorage.setItem('bgm_enabled', bgmEnabled.value); if (bgmEnabled.value) { playBgm(bgmList.value.find(b => b.id === currentBgmId.value)); } else { bgmAudio.value?.pause(); bgmPlaying.value = false; } };
+                const toggleSfx = () => { sfxEnabled.value = !sfxEnabled.value; localStorage.setItem('sfx_enabled', sfxEnabled.value); playSfx('click'); };
+                const switchBgm = (bgm) => { playSfx('click'); if (currentBgmId.value === bgm.id) return; playBgm(bgm); };
+                const openSettings = () => { playSfx('click'); showSettings.value = true; };
+                const closeSettings = () => { playSfx('click'); showSettings.value = false; };
+                const resetSettings = () => { playSfx('click'); bgmVolume.value = 50; sfxVolumePercent.value = 70; updateBgmVolume(); updateSfxVolume(); };
                 
                 onMounted(async () => {
-                    // 恢复用户偏好设置
                     bgmVolume.value = parseInt(localStorage.getItem('bgm_volume') || '50');
                     sfxVolumePercent.value = parseInt(localStorage.getItem('sfx_volume') || '70');
-                    bgmEnabled.value = localStorage.getItem('bgm_enabled') !== 'false'; // 默认为true
-                    sfxEnabled.value = localStorage.getItem('sfx_enabled') !== 'false'; // 默认为true
+                    bgmEnabled.value = localStorage.getItem('bgm_enabled') !== 'false';
+                    sfxEnabled.value = localStorage.getItem('sfx_enabled') !== 'false';
 
-                    // 预加载所有关键资源
-                    const assetsToLoad = [ ...Object.values(sfxMap), ...bgmList.value.map(b => b.src) ];
-                    for (let i = 1; i <= tileTypes; i++) assetsToLoad.push(getTileImage(i));
-
-                    await Promise.all(assetsToLoad.map(src => new Promise(resolve => {
-                        if (src.includes('.webp')) {
+                    const assetsToLoad = [];
+                    for (const key in sfxMap) { assetsToLoad.push({ type: 'audio', name: key, src: sfxMap[key] }); }
+                    for (let i = 1; i <= tileTypes; i++) { assetsToLoad.push({ type: 'image', src: getTileImage(i) }); }
+                    
+                    await Promise.all(assetsToLoad.map(asset => new Promise(resolve => {
+                        if (asset.type === 'image') {
                             const img = new Image();
                             img.onload = img.onerror = resolve;
-                            img.src = src;
-                        } else {
-                            const audio = new Audio(src);
-                            // 将创建的audio实例放入缓存，以便playSfx直接使用
-                            const name = src.split('/').pop().split('.')[0];
-                            sfxCache.set(name, audio);
+                            img.src = asset.src;
+                        } else if (asset.type === 'audio') {
+                            const audio = new Audio(asset.src);
+                            sfxCache.set(asset.name, audio);
                             audio.oncanplaythrough = audio.onerror = resolve;
                         }
                     })));
