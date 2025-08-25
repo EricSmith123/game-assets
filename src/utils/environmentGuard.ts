@@ -35,6 +35,7 @@ export class EnvironmentGuard {
     const hostname = window.location.hostname;
     const nodeEnv = import.meta.env.MODE;
     const isDev = import.meta.env.DEV;
+<<<<<<< HEAD
     const isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1');
 
     // 修复：本地测试时应该被识别为开发环境
@@ -44,11 +45,24 @@ export class EnvironmentGuard {
 
     return {
       isDevelopment,
+=======
+
+    // 优先使用Vite的环境检测
+    const isProduction = !isDev && nodeEnv === 'production';
+    const isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1');
+
+    return {
+      isDevelopment: isDev,
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
       isProduction,
       isLocal,
       hostname,
       nodeEnv,
+<<<<<<< HEAD
       buildMode: isDevelopment ? 'development' : 'production'
+=======
+      buildMode: isDev ? 'development' : 'production'
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
     };
   }
 

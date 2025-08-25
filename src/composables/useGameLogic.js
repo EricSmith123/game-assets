@@ -10,6 +10,7 @@ import { computed, nextTick, ref } from 'vue';
 const IS_DEV = import.meta.env.DEV;
 
 /**
+<<<<<<< HEAD
  * @description 检测是否为本地环境
  */
 const IS_LOCAL = typeof window !== 'undefined' &&
@@ -21,11 +22,22 @@ const IS_LOCAL = typeof window !== 'undefined' &&
  * - 在生产环境下（打包后），我们使用CDN的绝对路径。
  */
 export const ASSETS_BASE_URL = (IS_DEV || IS_LOCAL)
+=======
+ * @description 根据当前环境动态生成资源的根路径
+ * - 在开发环境下，我们直接从根目录 '/' 读取 public 文件夹下的资源。
+ * - 在生产环境下（打包后），我们使用CDN的绝对路径。
+ */
+export const ASSETS_BASE_URL = IS_DEV
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
   ? '/'
   : 'https://cdn.jsdelivr.net/gh/EricSmith123/game-assets@main/'; // 确保末尾有一个斜杠
 
 // 打印一下当前使用的资源路径，方便调试
+<<<<<<< HEAD
 console.log(`[当前环境] ${(IS_DEV || IS_LOCAL) ? '本地环境' : '生产环境'}, [资源根路径] ${ASSETS_BASE_URL}`);
+=======
+console.log(`[当前环境] ${IS_DEV ? '开发环境' : '生产环境'}, [资源根路径] ${ASSETS_BASE_URL}`);
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
 
 // ==================== 新增逻辑 结束 ====================
 

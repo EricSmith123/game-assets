@@ -743,16 +743,25 @@ const initializeGame = async () => {
         console.log('🌐 智能CDN选择...');
         await setLoadingProgress(38, '开始CDN选择');
         const isDev = import.meta.env.DEV;
+<<<<<<< HEAD
         const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
         let selectedCdn;
 
         // 修复：本地测试时强制使用本地资源
         if (!isDev && !isLocal) {
+=======
+        let selectedCdn;
+
+        if (!isDev) {
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
             selectedCdn = await cdnManager.selectBestCdn();
             CURRENT_CDN = selectedCdn.baseUrl;
         } else {
             CURRENT_CDN = '';
+<<<<<<< HEAD
             console.log('🔧 本地环境检测到，使用本地资源');
+=======
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
         }
         await setLoadingProgress(40, 'CDN选择完成');
 
@@ -762,10 +771,17 @@ const initializeGame = async () => {
             // 修复：在生产环境中，如果CDN不可用，回退到相对路径
             let baseUrl = '';
 
+<<<<<<< HEAD
             if (isDev || isLocal) {
                 // 开发环境或本地环境：使用空字符串（相对路径）
                 baseUrl = '';
                 console.log('🔧 [本地环境] 使用本地资源路径');
+=======
+            if (isDev) {
+                // 开发环境：使用空字符串（相对路径）
+                baseUrl = '';
+                console.log('🔧 [开发环境] 使用本地资源路径');
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
             } else {
                 // 生产环境：优先使用CDN，但确保有回退机制
                 if (CURRENT_CDN && CURRENT_CDN !== '') {
@@ -820,9 +836,15 @@ const initializeGame = async () => {
             // 修复：确保图片路径与音频路径使用相同的逻辑
             let baseUrl = '';
 
+<<<<<<< HEAD
             if (isDev || isLocal) {
                 baseUrl = '';
                 console.log(`🔧 [本地环境] 图片资源使用本地路径`);
+=======
+            if (isDev) {
+                baseUrl = '';
+                console.log(`🔧 [开发环境] 图片资源使用本地路径`);
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
             } else {
                 if (CURRENT_CDN && CURRENT_CDN !== '') {
                     baseUrl = CURRENT_CDN;

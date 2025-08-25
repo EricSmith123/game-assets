@@ -75,10 +75,17 @@
 </template>
 
 <script setup lang="ts">
+<<<<<<< HEAD
 import type { GameBoardEmits, GameBoardProps } from '@/types/components';
 import type { GameTile } from '@/types/game';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { ASSETS_BASE_URL } from '../composables/useGameLogic';
+=======
+import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { ASSETS_BASE_URL } from '../composables/useGameLogic';
+import type { GameBoardProps, GameBoardEmits } from '@/types/components';
+import type { GameTile } from '@/types/game';
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
 
 const props = defineProps<GameBoardProps>();
 const emit = defineEmits<GameBoardEmits>();
@@ -236,12 +243,20 @@ const getTileImage = (type: number): string => {
 
     // 使用已定义的isDev变量
     let imagePath: string;
+<<<<<<< HEAD
     const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
 
     if (isDev || isLocal) {
         // 开发环境或本地环境：直接从 public 目录加载
         imagePath = `/tiles/tile-${type}.webp`;
         console.log(`🖼️ [本地环境] 加载图片 - 类型: ${type}, 路径: ${imagePath}`);
+=======
+
+    if (isDev) {
+        // 开发环境：直接从 public 目录加载
+        imagePath = `/tiles/tile-${type}.webp`;
+        console.log(`🖼️ [开发环境] 加载图片 - 类型: ${type}, 路径: ${imagePath}`);
+>>>>>>> 9fddd3036fe0c9b5a6941f9fb1031aa12c6e3389
     } else {
         // 生产环境：使用CDN或绝对路径
         let baseUrl = props.cdnUrl || ASSETS_BASE_URL;
