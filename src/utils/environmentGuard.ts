@@ -35,18 +35,20 @@ export class EnvironmentGuard {
     const hostname = window.location.hostname;
     const nodeEnv = import.meta.env.MODE;
     const isDev = import.meta.env.DEV;
-
-    // 优先使用Vite的环境检测
-    const isProduction = !isDev && nodeEnv === 'production';
     const isLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1');
 
+    // 修复：本地测试时应该被识别为开发环境
+    // 即使是生产构建，如果在本地运行，也应该使用本地资源
+    const isProduction = !isDev && nodeEnv === 'production' && !isLocal;
+    const isDevelopment = isDev || isLocal; // 本地环境总是被视为开发环境
+
     return {
-      isDevelopment: isDev,
+      isDevelopment,
       isProduction,
       isLocal,
       hostname,
       nodeEnv,
-      buildMode: isDev ? 'development' : 'production'
+      buildMode: isDevelopment ? 'development' : 'production'
     };
   }
 

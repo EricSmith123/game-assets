@@ -75,10 +75,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue';
-import { ASSETS_BASE_URL } from '../composables/useGameLogic';
-import type { GameBoardProps, GameBoardEmits } from '@/types/components';
+import type { GameBoardEmits, GameBoardProps } from '@/types/components';
 import type { GameTile } from '@/types/game';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { ASSETS_BASE_URL } from '../composables/useGameLogic';
 
 const props = defineProps<GameBoardProps>();
 const emit = defineEmits<GameBoardEmits>();
@@ -236,11 +236,12 @@ const getTileImage = (type: number): string => {
 
     // 使用已定义的isDev变量
     let imagePath: string;
+    const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
 
-    if (isDev) {
-        // 开发环境：直接从 public 目录加载
+    if (isDev || isLocal) {
+        // 开发环境或本地环境：直接从 public 目录加载
         imagePath = `/tiles/tile-${type}.webp`;
-        console.log(`🖼️ [开发环境] 加载图片 - 类型: ${type}, 路径: ${imagePath}`);
+        console.log(`🖼️ [本地环境] 加载图片 - 类型: ${type}, 路径: ${imagePath}`);
     } else {
         // 生产环境：使用CDN或绝对路径
         let baseUrl = props.cdnUrl || ASSETS_BASE_URL;
