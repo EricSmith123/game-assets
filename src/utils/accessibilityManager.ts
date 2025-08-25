@@ -589,9 +589,44 @@ export class AccessibilityManager {
   }
 
   /**
+   * 检查是否应该显示可访问性工具栏
+   */
+  private shouldShowAccessibilityToolbar(): boolean {
+    // 开发环境始终显示
+    if (import.meta.env.DEV) {
+      return true;
+    }
+
+    // 检查系统可访问性偏好
+    const hasReducedMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const hasHighContrastPreference = window.matchMedia('(prefers-contrast: high)').matches;
+
+    // 检查用户是否已启用可访问性功能
+    const hasAccessibilityEnabled = this.config.highContrast || this.config.reducedMotion;
+
+    // 检查本地存储中的用户偏好
+    const userPreference = localStorage.getItem('show-accessibility-toolbar');
+
+    return hasReducedMotionPreference ||
+           hasHighContrastPreference ||
+           hasAccessibilityEnabled ||
+           userPreference === 'true';
+  }
+
+  /**
    * 创建可访问性工具栏
    */
   createAccessibilityToolbar(): void {
+    // 检查是否应该显示工具栏
+    if (!this.shouldShowAccessibilityToolbar()) {
+      console.log('♿ 未检测到可访问性需求，跳过工具栏创建');
+      console.log('💡 提示：可以通过快捷键使用可访问性功能：');
+      console.log('   Ctrl+H: 切换高对比度');
+      console.log('   Alt+R: 切换减少动画');
+      console.log('   Ctrl+K: 显示键盘帮助');
+      return;
+    }
+
     // 检查是否已存在工具栏
     const existingToolbar = document.querySelector('.accessibility-toolbar');
     if (existingToolbar) {
@@ -633,7 +668,25 @@ export class AccessibilityManager {
     });
 
     document.body.appendChild(toolbar);
-    console.log('♿ 可访问性工具栏已创建');
+    console.log('♿ 可访问性工具栏已创建（智能显示模式）');
+  }
+
+  /**
+   * 手动启用可访问性工具栏
+   */
+  enableAccessibilityToolbar(): void {
+    localStorage.setItem('show-accessibility-toolbar', 'true');
+    this.createAccessibilityToolbar();
+    this.announce('可访问性工具栏已启用');
+  }
+
+  /**
+   * 手动禁用可访问性工具栏
+   */
+  disableAccessibilityToolbar(): void {
+    localStorage.setItem('show-accessibility-toolbar', 'false');
+    this.removeAccessibilityToolbar();
+    this.announce('可访问性工具栏已禁用');
   }
 
   /**

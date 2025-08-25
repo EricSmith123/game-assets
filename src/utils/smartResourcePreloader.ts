@@ -105,11 +105,12 @@ export class SmartResourcePreloader {
     }
 
     // 音频文件 - 游戏开始时预加载
-    const audioFiles = ['match', 'swap', 'error', 'success'];
+    // 注意：音频路径将在运行时通过updateAudioPaths方法更新
+    const audioFiles = ['match', 'swap', 'error', 'fall'];
     audioFiles.forEach(name => {
       this.resources.set(`audio-${name}`, {
         config: {
-          url: `/audio/${name}.mp3`,
+          url: `/audio/sfx/${name}.mp3`, // 临时路径，将在运行时更新
           type: ResourceType.AUDIO,
           strategy: PreloadStrategy.ON_DEMAND,
           priority: 3,
@@ -125,7 +126,7 @@ export class SmartResourcePreloader {
     // 背景音乐 - 懒加载
     this.resources.set('bgm-main', {
       config: {
-        url: '/audio/bgm-main.mp3',
+        url: '/audio/bgm/bgm_1.mp3', // 临时路径，将在运行时更新
         type: ResourceType.AUDIO,
         strategy: PreloadStrategy.LAZY,
         priority: 2,
@@ -207,12 +208,40 @@ export class SmartResourcePreloader {
   }
 
   /**
+   * 更新音频资源路径
+   */
+  updateAudioPaths(sfxMap: Record<string, string>, bgmList: Array<{id: number, name: string, src: string}>): void {
+    console.log('🔄 更新智能预加载器的音频路径...');
+
+    // 更新音效路径
+    Object.entries(sfxMap).forEach(([name, url]) => {
+      const resourceKey = `audio-${name}`;
+      const resource = this.resources.get(resourceKey);
+      if (resource) {
+        resource.config.url = url;
+        console.log(`🔄 更新音效路径: ${name} -> ${url}`);
+      }
+    });
+
+    // 更新BGM路径
+    if (bgmList.length > 0) {
+      const bgmResource = this.resources.get('bgm-main');
+      if (bgmResource && bgmList[0]) {
+        bgmResource.config.url = bgmList[0].src;
+        console.log(`🔄 更新BGM路径: ${bgmList[0].name} -> ${bgmList[0].src}`);
+      }
+    }
+
+    console.log('✅ 智能预加载器音频路径更新完成');
+  }
+
+  /**
    * 通知游戏开始
    */
   notifyGameStarted(): void {
     this.gameStarted = true;
     this.preloadByStrategy(PreloadStrategy.ON_DEMAND);
-    
+
     this.logger.info('游戏已开始，触发按需预加载', undefined, 'SmartResourcePreloader');
   }
 

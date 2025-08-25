@@ -242,10 +242,19 @@ const getTileImage = (type: number): string => {
         imagePath = `/tiles/tile-${type}.webp`;
         console.log(`🖼️ [开发环境] 加载图片 - 类型: ${type}, 路径: ${imagePath}`);
     } else {
-        // 生产环境：使用 CDN
-        const baseUrl = props.cdnUrl || ASSETS_BASE_URL;
-        imagePath = `${baseUrl}tiles/tile-${type}.webp`;
-        console.log(`🖼️ [生产环境] 加载图片 - 类型: ${type}, 路径: ${imagePath}`);
+        // 生产环境：使用CDN或绝对路径
+        let baseUrl = props.cdnUrl || ASSETS_BASE_URL;
+
+        if (baseUrl && baseUrl !== '') {
+            // 使用CDN路径，根据GitHub仓库结构：public/tiles/
+            const separator = baseUrl.endsWith('/') ? '' : '/';
+            imagePath = `${baseUrl}${separator}public/tiles/tile-${type}.webp`;
+            console.log(`🖼️ [生产环境] 使用CDN加载图片 - 类型: ${type}, 路径: ${imagePath}`);
+        } else {
+            // CDN不可用，使用绝对路径
+            imagePath = `/tiles/tile-${type}.webp`;
+            console.log(`🔄 [生产环境] CDN不可用，图片使用绝对路径: ${imagePath}`);
+        }
     }
 
     return imagePath;

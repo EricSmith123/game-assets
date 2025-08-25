@@ -64,18 +64,21 @@
           <button class="audio-btn" @click="toggleSfx" :title="sfxEnabled ? '关闭音效' : '开启音效'">
             {{ sfxEnabled ? '🎵' : '🔕' }}
           </button>
-          <button class="audio-btn" @click="testSingleSfx" title="测试音效管理器">
-            🧪
-          </button>
-          <button class="audio-btn" @click="testGameSfx" title="测试游戏音效">
-            🎮
-          </button>
-          <button class="audio-btn" @click="emergencyReset" title="紧急重置状态" style="background: #dc3545;">
-            🚨
-          </button>
-          <button class="audio-btn" @click="testChainMatching" title="测试连锁消除" style="background: #17a2b8;">
-            🔗
-          </button>
+          <!-- 开发环境专用调试按钮 -->
+          <template v-if="isDev">
+            <button class="audio-btn" @click="testSingleSfx" title="测试音效管理器">
+              🧪
+            </button>
+            <button class="audio-btn" @click="testGameSfx" title="测试游戏音效">
+              🎮
+            </button>
+            <button class="audio-btn" @click="emergencyReset" title="紧急重置状态" style="background: #dc3545;">
+              🚨
+            </button>
+            <button class="audio-btn" @click="testChainMatching" title="测试连锁消除" style="background: #17a2b8;">
+              🔗
+            </button>
+          </template>
           <button class="pause-btn" @click="togglePause" v-if="gameState === 'playing'">
             ⏸️
           </button>
@@ -151,29 +154,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { useUnifiedAudioManager } from './composables/useUnifiedAudioManager';
-import { useGameLogic } from './composables/useGameLogic';
-import SettingsPanel from './components/SettingsPanel.vue';
-import GameBoard from './components/GameBoard.vue';
-import GameModals from './components/GameModals.vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import ErrorBoundary from './components/ErrorBoundary.vue';
 import ErrorToast from './components/ErrorToast.vue';
+import GameBoard from './components/GameBoard.vue';
+import GameModals from './components/GameModals.vue';
+import SettingsPanel from './components/SettingsPanel.vue';
 import { useErrorHandler } from './composables/useErrorHandler';
+import { useGameLogic } from './composables/useGameLogic';
+import { useUnifiedAudioManager } from './composables/useUnifiedAudioManager';
 // 移除静态导入，改为通过服务注册中心获取
 // import { runTechnicalDebtTests } from './utils/testSuite';
 // import { debugHelper } from './utils/debugHelper';
 // import { performanceMonitor } from './utils/performanceMonitor';
 // import { benchmarkSuite } from './utils/benchmarkSuite';
 // import { performanceComparison } from './utils/performanceComparison';
-import { resourcePreloader, ResourceType, ResourcePriority } from './utils/resourcePreloader';
 import { cacheManager } from './utils/cacheManager';
 import { cdnManager } from './utils/cdnManager';
 import { memoryOptimizer } from './utils/memoryOptimizer';
 import { optimizedAudioManager } from './utils/optimizedAudioManager';
-import { renderOptimizer } from './utils/renderOptimizer';
-import { animationOptimizer } from './utils/animationOptimizer';
-import { optimizedMatchDetector } from './utils/optimizedMatchDetector';
+import { resourcePreloader, ResourcePriority, ResourceType } from './utils/resourcePreloader';
 // 移除静态导入，改为通过服务注册中心获取
 // import { memoryManager } from './utils/memoryManager';
 // import { wasmMatchDetector } from './utils/wasmMatchDetector';
@@ -181,22 +181,18 @@ import { optimizedMatchDetector } from './utils/optimizedMatchDetector';
 // import { networkOptimizer } from './utils/networkOptimizer';
 // import { serviceWorkerManager } from './utils/serviceWorkerManager';
 // import { offlineManager } from './utils/offlineManager';
-import { interactionAnimator } from './utils/interactionAnimator';
-import { responsiveManager } from './utils/responsiveManager';
 import { accessibilityManager } from './utils/accessibilityManager';
 // 移除静态导入，改为通过服务注册中心获取
 // import { userPreferencesManager } from './utils/userPreferencesManager';
 // import { loadingExperienceManager } from './utils/loadingExperienceManager';
-import { performCompleteCleanup, startElementMonitoring, cleanupGreenSquares } from './utils/elementCleaner';
-import { devToolsController } from './utils/devToolsController';
-import { serviceRegistry } from './utils/serviceRegistry';
-import { layeredSettingsManager } from './utils/layeredSettingsManager';
-import { smartResourcePreloader } from './utils/smartResourcePreloader';
-import { mobileOptimizer } from './utils/mobileOptimizer';
-import { touchGestureManager } from './utils/touchGestureManager';
-import { ErrorCode } from '@/types/error';
-import type { GameState, MessageType, BgmInfo } from '@/types/game';
 import type { SfxMap } from '@/types/audio';
+import { ErrorCode } from '@/types/error';
+import type { BgmInfo, GameState, MessageType } from '@/types/game';
+import { devToolsController } from './utils/devToolsController';
+import { cleanupGreenSquares, performCompleteCleanup, startElementMonitoring } from './utils/elementCleaner';
+import { mobileOptimizer } from './utils/mobileOptimizer';
+import { serviceRegistry } from './utils/serviceRegistry';
+import { smartResourcePreloader } from './utils/smartResourcePreloader';
 
 // --- 资源与配置 ---
 interface CdnOptions {
@@ -215,8 +211,12 @@ const bgmList = ref<BgmInfo[]>([]);
 const sfxMap: SfxMap = {};
 
 // --- 状态管理 ---
+// 环境检测
+const isDev = import.meta.env.DEV;
+
 // UI 状态
 const showLoading = ref<boolean>(true);
+const isLoading = ref<boolean>(true);
 const loadingProgress = ref<number>(0);
 const showSettings = ref<boolean>(false);
 const showMessage = ref<boolean>(false);
@@ -646,8 +646,19 @@ const initializeGame = async () => {
         // 1. 注册Service Worker
         console.log('🔧 注册Service Worker...');
         await setLoadingProgress(5, '准备Service Worker');
-        await serviceWorkerManager.register();
-        await setLoadingProgress(10, 'Service Worker已注册');
+        try {
+            // 通过服务注册中心获取serviceWorkerManager
+            const serviceWorkerManager = serviceRegistry.getService('serviceWorkerManager');
+            if (serviceWorkerManager) {
+                await serviceWorkerManager.register();
+                console.log('✅ Service Worker注册成功');
+            } else {
+                console.warn('⚠️ Service Worker管理器不可用，跳过注册');
+            }
+        } catch (error) {
+            console.warn('⚠️ Service Worker注册失败，继续初始化:', error.message);
+        }
+        await setLoadingProgress(10, 'Service Worker处理完成');
 
         // 2. 初始化网络优化器
         console.log('🌐 初始化网络优化器...');
@@ -657,13 +668,24 @@ const initializeGame = async () => {
         // 3. 初始化离线管理器
         console.log('🔌 初始化离线管理器...');
         await setLoadingProgress(18, '准备离线管理器');
-        offlineManager.configure({
-            enableOfflineMode: true,
-            autoSave: true,
-            saveInterval: 30000,
-            syncOnReconnect: true
-        });
-        await setLoadingProgress(20, '离线管理器已配置');
+        try {
+            // 通过服务注册中心获取offlineManager
+            const offlineManager = serviceRegistry.getService('offlineManager');
+            if (offlineManager) {
+                offlineManager.configure({
+                    enableOfflineMode: true,
+                    autoSave: true,
+                    saveInterval: 30000,
+                    syncOnReconnect: true
+                });
+                console.log('✅ 离线管理器配置成功');
+            } else {
+                console.warn('⚠️ 离线管理器不可用，跳过配置');
+            }
+        } catch (error) {
+            console.warn('⚠️ 离线管理器配置失败，继续初始化:', error.message);
+        }
+        await setLoadingProgress(20, '离线管理器处理完成');
 
         // 4. 初始化用户体验优化系统
         console.log('🎨 初始化用户体验优化系统...');
@@ -693,13 +715,23 @@ const initializeGame = async () => {
         // 5. 初始化内存管理器
         console.log('🧠 初始化智能内存管理器...');
         await setLoadingProgress(28, '准备内存管理器');
-        memoryManager.init({
-            maxMemoryUsage: 150, // 150MB
-            gcThreshold: 75, // 75%触发GC
-            monitorInterval: 3000, // 3秒监控
-            leakDetectionEnabled: true
-        });
-        await setLoadingProgress(30, '内存管理器已初始化');
+        try {
+            const memoryManager = serviceRegistry.getService('memoryManager');
+            if (memoryManager) {
+                memoryManager.init({
+                    maxMemoryUsage: 150, // 150MB
+                    gcThreshold: 75, // 75%触发GC
+                    monitorInterval: 3000, // 3秒监控
+                    leakDetectionEnabled: true
+                });
+                console.log('✅ 内存管理器初始化成功');
+            } else {
+                console.warn('⚠️ 内存管理器不可用，跳过初始化');
+            }
+        } catch (error) {
+            console.warn('⚠️ 内存管理器初始化失败，继续初始化:', error.message);
+        }
+        await setLoadingProgress(30, '内存管理器处理完成');
 
         // 6. 初始化缓存系统
         console.log('💾 初始化超级缓存系统...');
@@ -721,37 +753,88 @@ const initializeGame = async () => {
         }
         await setLoadingProgress(40, 'CDN选择完成');
 
-        // 3. 配置资源URL
+        // 3. 配置音频资源URL - 修复路径问题
+        console.log('🎵 开始配置音频资源...');
         const updateAudioSources = () => {
-            const baseUrl = isDev ? '' : CURRENT_CDN;
+            // 修复：在生产环境中，如果CDN不可用，回退到相对路径
+            let baseUrl = '';
+
+            if (isDev) {
+                // 开发环境：使用空字符串（相对路径）
+                baseUrl = '';
+                console.log('🔧 [开发环境] 使用本地资源路径');
+            } else {
+                // 生产环境：优先使用CDN，但确保有回退机制
+                if (CURRENT_CDN && CURRENT_CDN !== '') {
+                    baseUrl = CURRENT_CDN;
+                    console.log('🌐 [生产环境] 使用CDN资源:', CURRENT_CDN);
+                } else {
+                    // CDN不可用时，回退到相对路径
+                    baseUrl = '.';
+                    console.log('🔄 [生产环境] CDN不可用，回退到本地资源');
+                }
+            }
+
+            // 根据GitHub仓库结构配置音频路径：public/audio/bgm/ 和 public/audio/sfx/
+            const audioBasePath = baseUrl ? `${baseUrl}/public/audio` : '/audio';
 
             bgmList.value = [
-                { id: 1, name: "轻松BGM", src: `${baseUrl}/audio/bgm/bgm_1.mp3` },
-                { id: 2, name: "活泼BGM", src: `${baseUrl}/audio/bgm/bgm_2.mp3` }
+                { id: 1, name: "轻松BGM", src: `${audioBasePath}/bgm/bgm_1.mp3` },
+                { id: 2, name: "活泼BGM", src: `${audioBasePath}/bgm/bgm_2.mp3` }
             ];
 
             Object.assign(sfxMap, {
-                click: `${baseUrl}/audio/sfx/click.mp3`,
-                swap: `${baseUrl}/audio/sfx/swap.mp3`,
-                match: `${baseUrl}/audio/sfx/match.mp3`,
-                error: `${baseUrl}/audio/sfx/error.mp3`,
-                fall: `${baseUrl}/audio/sfx/fall.mp3`,
-                nomove: `${baseUrl}/audio/sfx/nomove.mp3`
+                click: `${audioBasePath}/sfx/click.mp3`,
+                swap: `${audioBasePath}/sfx/swap.mp3`,
+                match: `${audioBasePath}/sfx/match.mp3`,
+                error: `${audioBasePath}/sfx/error.mp3`,
+                fall: `${audioBasePath}/sfx/fall.mp3`,
+                nomove: `${audioBasePath}/sfx/nomove.mp3`
             });
 
-            console.log('📁 音频资源已配置:', { bgmCount: bgmList.value.length, sfxCount: Object.keys(sfxMap).length });
+            console.log('📁 音频资源已配置:', {
+                isDev,
+                baseUrl,
+                audioBasePath,
+                bgmCount: bgmList.value.length,
+                sfxCount: Object.keys(sfxMap).length,
+                sampleBgm: bgmList.value[0]?.src,
+                sampleSfx: sfxMap.click
+            });
         };
 
         updateAudioSources();
+
+        // 更新智能预加载器的音频路径
+        smartResourcePreloader.updateAudioPaths(sfxMap, bgmList.value);
+
         await setLoadingProgress(42, '资源配置完成');
 
-        // 4. 预加载图片资源
+        // 4. 预加载图片资源 - 修复CDN回退机制
         console.log('🖼️ 预加载图片资源...');
         const imageConfigs = [];
         for (let i = 1; i <= 6; i++) {
-            const baseUrl = isDev ? '' : CURRENT_CDN;
+            // 修复：确保图片路径与音频路径使用相同的逻辑
+            let baseUrl = '';
+
+            if (isDev) {
+                baseUrl = '';
+                console.log(`🔧 [开发环境] 图片资源使用本地路径`);
+            } else {
+                if (CURRENT_CDN && CURRENT_CDN !== '') {
+                    baseUrl = CURRENT_CDN;
+                    console.log(`🌐 [生产环境] 图片资源使用CDN: ${CURRENT_CDN}`);
+                } else {
+                    baseUrl = '.';
+                    console.log(`🔄 [生产环境] 图片资源回退到本地路径`);
+                }
+            }
+
+            // 根据GitHub仓库结构配置图片路径：public/tiles/
+            const imageBasePath = baseUrl ? `${baseUrl}/public/tiles` : '/tiles';
+
             imageConfigs.push({
-                url: `${baseUrl}/tiles/tile-${i}.webp`,
+                url: `${imageBasePath}/tile-${i}.webp`,
                 type: ResourceType.IMAGE,
                 priority: ResourcePriority.HIGH
             });
@@ -787,8 +870,18 @@ const initializeGame = async () => {
         // 5. 初始化WASM匹配检测器
         console.log('⚡ 初始化WebAssembly匹配检测器...');
         await setLoadingProgress(58, '准备WASM检测器');
-        await wasmMatchDetector.init();
-        await setLoadingProgress(62, 'WASM检测器已初始化');
+        try {
+            const wasmMatchDetector = serviceRegistry.getService('wasmMatchDetector');
+            if (wasmMatchDetector) {
+                await wasmMatchDetector.init();
+                console.log('✅ WASM检测器初始化成功');
+            } else {
+                console.warn('⚠️ WASM检测器不可用，跳过初始化');
+            }
+        } catch (error) {
+            console.warn('⚠️ WASM检测器初始化失败，继续初始化:', error.message);
+        }
+        await setLoadingProgress(62, 'WASM检测器处理完成');
 
         // 6. 初始化优化音频管理器
         console.log('🎵 初始化优化音频管理器...');
@@ -1023,8 +1116,8 @@ onMounted(async () => {
 
     loadSettings();
 
-    // 开发环境特殊处理 - 仅初始化开发工具，不自动运行测试
-    if (import.meta.env.DEV) {
+    // 开发环境特殊处理 - 仅在开发环境中运行
+    if (isDev) {
         console.log('🔧 开发环境检测到，开发工具已就绪');
         console.log('💡 使用 Ctrl+Shift+D 打开开发工具面板，或在URL添加 ?devTests=1 启用自动测试');
 
@@ -1082,29 +1175,76 @@ onMounted(async () => {
             console.warn('⚠️ 清理失败:', cleanupError);
         }
 
-        // 打印优化系统统计信息
-        console.log('📊 打印优化系统统计信息...');
-        try {
-            memoryManager.printStats();
-            await cacheManager.printStats();
-            cdnManager.printStats();
-            console.log('🎵 音频缓存统计:', optimizedAudioManager.getCacheStats());
-            console.log('🚀 资源预加载统计:', resourcePreloader.getStats());
-            renderOptimizer.printStats();
-            animationOptimizer.printStats();
-            optimizedMatchDetector.printStats();
-            wasmMatchDetector.printStats();
-            tileObjectPool.printStats();
-            networkOptimizer.printStats();
-            await serviceWorkerManager.printStats();
-            offlineManager.printStats();
-            interactionAnimator.printStats();
-            responsiveManager.printStats();
-            accessibilityManager.printStats();
-            userPreferencesManager.printStats();
-            loadingExperienceManager.printStats();
-        } catch (testError) {
-            console.error('❌ 统计信息打印失败:', testError);
+        // 打印优化系统统计信息（仅开发环境）
+        if (isDev) {
+            console.log('📊 打印优化系统统计信息...');
+            try {
+                // 安全地获取和调用各种服务的统计信息
+                const services = [
+                    'memoryManager', 'cacheManager', 'cdnManager', 'optimizedAudioManager',
+                    'resourcePreloader', 'renderOptimizer', 'animationOptimizer',
+                    'optimizedMatchDetector', 'wasmMatchDetector', 'tileObjectPool', 'networkOptimizer'
+                ];
+
+                for (const serviceName of services) {
+                    try {
+                        const service = serviceRegistry.getService(serviceName);
+                        if (service && service.printStats) {
+                            service.printStats();
+                        } else if (service && service.getCacheStats) {
+                            console.log(`🎵 ${serviceName}缓存统计:`, service.getCacheStats());
+                        } else if (service && service.getStats) {
+                            console.log(`🚀 ${serviceName}统计:`, service.getStats());
+                        }
+                    } catch (serviceError) {
+                        console.warn(`⚠️ ${serviceName}统计信息获取失败:`, serviceError.message);
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ 统计信息打印失败:', error);
+            }
+        }
+
+        // 其他服务统计信息（仅开发环境）
+        if (isDev) {
+            try {
+                const serviceWorkerManager = serviceRegistry.getService('serviceWorkerManager');
+                if (serviceWorkerManager) {
+                    await serviceWorkerManager.printStats();
+                }
+            } catch (error) {
+                console.warn('⚠️ Service Worker统计信息获取失败:', error.message);
+            }
+
+            try {
+                const offlineManager = serviceRegistry.getService('offlineManager');
+                if (offlineManager) {
+                    offlineManager.printStats();
+                }
+            } catch (error) {
+                console.warn('⚠️ 离线管理器统计信息获取失败:', error.message);
+            }
+
+            try {
+                // 继续处理其他服务的统计信息
+                const additionalServices = [
+                    'interactionAnimator', 'responsiveManager', 'accessibilityManager',
+                    'userPreferencesManager', 'loadingExperienceManager'
+                ];
+
+                for (const serviceName of additionalServices) {
+                    try {
+                        const service = serviceRegistry.getService(serviceName);
+                        if (service && service.printStats) {
+                            service.printStats();
+                        }
+                    } catch (serviceError) {
+                        console.warn(`⚠️ ${serviceName}统计信息获取失败:`, serviceError.message);
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ 其他服务统计信息打印失败:', error);
+            }
         }
 
         // 验证页面渲染状态
