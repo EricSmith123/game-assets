@@ -18,7 +18,8 @@
         <p>游戏时长: {{ formattedTime }}</p>
       </div>
       <div class="end-btn-row">
-        <button class="action-btn purple" @click="$emit('restart-game')">重新开始</button>
+        <button class="action-btn purple restart-btn" @click="$emit('restart-game')">重新开始</button>
+        <button class="action-btn gray menu-btn" @click="$emit('back-to-menu')">返回菜单</button>
       </div>
     </div>
   </div>
@@ -33,22 +34,19 @@
         <p>游戏时长: {{ formattedTime }}</p>
       </div>
       <div class="end-btn-row">
-        <button class="action-btn green" @click="$emit('resume-game')">继续游戏</button>
-        <button class="action-btn gray" @click="$emit('restart-game')">重新开始</button>
+        <button class="action-btn green resume-btn" @click="$emit('resume-game')">继续游戏</button>
+        <button class="action-btn purple restart-btn" @click="$emit('restart-game')">重新开始</button>
+        <button class="action-btn gray menu-btn" @click="$emit('back-to-menu')">返回菜单</button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-defineProps({
-  gameState: String,
-  score: Number,
-  movesUsed: Number,
-  formattedTime: String,
-});
+<script setup lang="ts">
+import type { GameModalsProps, GameModalsEmits } from '@/types/components';
 
-defineEmits(['start-game', 'restart-game', 'resume-game']);
+const props = defineProps<GameModalsProps>();
+const emit = defineEmits<GameModalsEmits>();
 </script>
 
 <style scoped>

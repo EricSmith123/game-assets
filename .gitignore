@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 开发工具自动添加
+.env.local
+.env.*.local
+Thumbs.db
+security-reports/
+dependency-report.md
+bundle-analysis-report.md
+dev-tools-report.md

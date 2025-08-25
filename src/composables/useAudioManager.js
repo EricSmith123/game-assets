@@ -117,9 +117,18 @@ class HybridAudioManager {
 
     // SFX也只接受一个源URL
     async playSfx(src) {
-        if (!this.sfxEnabled || !this.initialized) return;
-        if (this.useWebAudio) await this.playSfxWebAudio(src);
-        else await this.playSfxFallback(src);
+        console.log(`🔊 playSfx 调用 - 音效启用: ${this.sfxEnabled}, 已初始化: ${this.initialized}`);
+        if (!this.sfxEnabled || !this.initialized) {
+            console.log(`🔇 跳过音效播放 - 音效启用: ${this.sfxEnabled}, 已初始化: ${this.initialized}`);
+            return;
+        }
+
+        console.log(`🔊 选择播放方式 - WebAudio: ${this.useWebAudio}`);
+        if (this.useWebAudio) {
+            await this.playSfxWebAudio(src);
+        } else {
+            await this.playSfxFallback(src);
+        }
     }
 
     async playSfxWebAudio(src) {
@@ -141,28 +150,92 @@ class HybridAudioManager {
     }
 
     async playSfxFallback(src) {
+        const fileName = src.split('/').pop();
+        console.log(`🔊 [Fallback] 开始播放音效: ${fileName}`);
+
         try {
-            if (!this.sfxAudioPool.has(src)) this.sfxAudioPool.set(src, []);
+            if (!this.sfxAudioPool.has(src)) {
+                console.log(`🔊 [Fallback] 创建新的音频池: ${fileName}`);
+                this.sfxAudioPool.set(src, []);
+            }
+
             const pool = this.sfxAudioPool.get(src);
             let audio = pool.find(a => a.paused || a.ended);
+
             if (!audio) {
+                console.log(`🔊 [Fallback] 创建新的 Audio 对象: ${fileName}`);
                 audio = new Audio(src);
+
+                // 添加事件监听器用于调试
+                audio.addEventListener('loadstart', () => console.log(`🔊 [${fileName}] 开始加载`));
+                audio.addEventListener('canplay', () => console.log(`🔊 [${fileName}] 可以播放`));
+                audio.addEventListener('play', () => console.log(`🔊 [${fileName}] 开始播放`));
+                audio.addEventListener('ended', () => console.log(`🔊 [${fileName}] 播放结束`));
+                audio.addEventListener('error', (e) => console.error(`🔊 [${fileName}] 播放错误:`, e));
+
                 pool.push(audio);
-                if (pool.length > 5) pool.shift(); // 限制对象池大小
+                if (pool.length > 3) {
+                    console.log(`🔊 [Fallback] 清理音频池，移除旧对象`);
+                    pool.shift();
+                }
+            } else {
+                console.log(`🔊 [Fallback] 复用现有 Audio 对象: ${fileName}`);
             }
+
             audio.currentTime = 0;
-            audio.volume = this.sfxVolume;
+
+            // 确保音量值有效
+            const validVolume = isNaN(this.sfxVolume) ? 0.7 : this.sfxVolume;
+            audio.volume = validVolume;
+            console.log(`🔊 [Fallback] 设置音量: ${validVolume} for ${fileName}`);
+
             const playPromise = audio.play();
-            if (playPromise) await playPromise;
+            if (playPromise) {
+                await playPromise;
+                console.log(`✅ [Fallback] 音效播放成功: ${fileName}`);
+            }
         } catch (e) {
-            // 忽略播放失败的音效，避免中断游戏
+            console.error(`❌ [Fallback] 音效播放失败: ${fileName}`, e);
+            throw e;
         }
     }
 
     setBgmVolume(volume) { this.bgmVolume = Math.max(0, Math.min(1, volume)); if (this.useWebAudio && this.bgmGainNode) this.bgmGainNode.gain.value = this.bgmVolume; else if (this.bgmAudio) this.bgmAudio.volume = this.bgmVolume; }
     setSfxVolume(volume) { this.sfxVolume = Math.max(0, Math.min(1, volume)); if (this.useWebAudio && this.sfxGainNode) this.sfxGainNode.gain.value = this.sfxVolume; this.sfxAudioPool.forEach(p => p.forEach(a => a.volume = this.sfxVolume)); }
-    pauseBgm() { if (this.useWebAudio && this.bgmSource && this.bgmPlaying) { this.bgmSource.stop(); this.bgmSource = null; } else if (this.bgmAudio && !this.bgmAudio.paused) { this.bgmAudio.pause(); } this.bgmPlaying = false; }
-    resumeBgm() { if (this.useWebAudio && this.bgmBuffer && !this.bgmPlaying) { try { this.bgmSource = this.audioContext.createBufferSource(); this.bgmSource.buffer = this.bgmBuffer; this.bgmSource.loop = true; this.bgmSource.connect(this.bgmGainNode); this.bgmSource.start(); this.bgmPlaying = true; } catch (e) {} } else if (this.bgmAudio && this.bgmAudio.paused) { this.bgmAudio.play().then(() => this.bgmPlaying = true).catch(e => {}); } }
+    pauseBgm() {
+        console.log('🎵 AudioManager.pauseBgm 被调用');
+        if (this.useWebAudio && this.bgmSource && this.bgmPlaying) {
+            this.bgmSource.stop();
+            this.bgmSource = null;
+        } else if (this.bgmAudio && !this.bgmAudio.paused) {
+            this.bgmAudio.pause();
+        }
+        this.bgmPlaying = false;
+        console.log('🎵 AudioManager BGM 已暂停');
+    }
+    resumeBgm() {
+        console.log('🎵 AudioManager.resumeBgm 被调用');
+        if (this.useWebAudio && this.bgmBuffer && !this.bgmPlaying) {
+            try {
+                this.bgmSource = this.audioContext.createBufferSource();
+                this.bgmSource.buffer = this.bgmBuffer;
+                this.bgmSource.loop = true;
+                this.bgmSource.connect(this.bgmGainNode);
+                this.bgmSource.start();
+                this.bgmPlaying = true;
+                console.log('🎵 AudioManager BGM WebAudio 恢复成功');
+            } catch (e) {
+                console.error('❌ AudioManager BGM WebAudio 恢复失败:', e);
+            }
+        } else if (this.bgmAudio && this.bgmAudio.paused) {
+            this.bgmAudio.play().then(() => {
+                this.bgmPlaying = true;
+                console.log('🎵 AudioManager BGM HTML5 Audio 恢复成功');
+            }).catch(e => {
+                console.error('❌ AudioManager BGM HTML5 Audio 恢复失败:', e);
+            });
+        }
+    }
     toggleSfx() { this.sfxEnabled = !this.sfxEnabled; return this.sfxEnabled; }
     close() { if (this.audioContext) this.audioContext.close(); }
 }
@@ -177,29 +250,76 @@ export function useAudioManager(sfxMap) {
     const bgmPlaying = ref(audioManager.bgmPlaying);
     const sfxEnabled = ref(audioManager.sfxEnabled);
 
-    // 这个函数处理游戏业务逻辑：通过名字播放音效
+    // 音效播放状态跟踪
+    const sfxPlayingStatus = new Map();
+    const sfxLoadStatus = new Map();
+
+    // 检查音效文件是否可访问
+    const checkSfxAvailability = async () => {
+        console.log('🔍 ===== 音效文件可用性检查 =====');
+        for (const [name, src] of Object.entries(sfxMap)) {
+            try {
+                const response = await fetch(src, { method: 'HEAD' });
+                const status = response.ok ? '✅ 可用' : '❌ 不可用';
+                sfxLoadStatus.set(name, response.ok);
+                console.log(`${status} ${name}: ${src} (状态: ${response.status})`);
+            } catch (error) {
+                sfxLoadStatus.set(name, false);
+                console.log(`❌ 网络错误 ${name}: ${src} - ${error.message}`);
+            }
+        }
+        console.log('🔍 ===== 音效检查完成 =====');
+    };
+
+    // 简化的音效播放函数，移除复杂的队列管理
     const playNamedSfx = async (name) => {
-        if (!sfxEnabled.value) return;
-        const src = sfxMap[name];
-        if (!src) {
-            console.warn(`音效名未在 sfxMap 中找到: ${name}`);
+        const timestamp = Date.now();
+        console.log(`🎵 [${timestamp}] 请求播放音效: ${name}`);
+
+        if (!sfxEnabled.value) {
+            console.log(`🔇 [${timestamp}] 音效已禁用，跳过: ${name}`);
             return;
         }
+
+        const src = sfxMap[name];
+        if (!src) {
+            console.error(`❌ [${timestamp}] 音效名未在 sfxMap 中找到: ${name}`);
+            console.log('📋 可用的音效:', Object.keys(sfxMap));
+            return;
+        }
+
+        // 检查文件是否可用
+        if (sfxLoadStatus.has(name) && !sfxLoadStatus.get(name)) {
+            console.error(`❌ [${timestamp}] 音效文件不可用: ${name}`);
+            return;
+        }
+
         try {
+            console.log(`🎵 [${timestamp}] 开始播放音效: ${name} -> ${src}`);
+            sfxPlayingStatus.set(name, timestamp);
+
+            // 直接播放，不使用复杂的队列管理
             await audioManager.playSfx(src);
+
+            console.log(`✅ [${timestamp}] 音效播放完成: ${name}`);
         } catch (e) {
-            console.error(`播放音效失败: ${name}`, e);
+            console.error(`❌ [${timestamp}] 播放音效失败: ${name}`, e);
+        } finally {
+            sfxPlayingStatus.delete(name);
         }
     };
 
     // BGM播放函数保持不变，它直接接收URL
     const playBgm = async (src) => {
         if (!src) return;
+        console.log('🎵 playBgm 被调用，源:', src);
         try {
             await audioManager.playBgm(src);
             bgmPlaying.value = true;
+            console.log('🎵 playBgm 成功，状态已更新为:', bgmPlaying.value);
         } catch (e) {
             bgmPlaying.value = false;
+            console.error('❌ playBgm 失败:', e);
             throw e;
         }
     };
@@ -231,6 +351,34 @@ export function useAudioManager(sfxMap) {
         }
     };
 
+    // 音效测试函数
+    const testAllSfx = async () => {
+        console.log('🧪 ===== 开始全面音效测试 =====');
+
+        // 首先检查文件可用性
+        await checkSfxAvailability();
+
+        console.log('🧪 开始逐个测试音效播放...');
+        const sfxNames = Object.keys(sfxMap);
+
+        for (const name of sfxNames) {
+            console.log(`🧪 测试音效: ${name}`);
+            try {
+                await playNamedSfx(name);
+                await new Promise(resolve => setTimeout(resolve, 800)); // 间隔800ms，确保播放完成
+            } catch (e) {
+                console.error(`❌ 音效测试失败: ${name}`, e);
+            }
+        }
+        console.log('🧪 ===== 音效测试完成 =====');
+    };
+
+    // 单独测试特定音效
+    const testSingleSfx = async (name) => {
+        console.log(`🧪 单独测试音效: ${name}`);
+        await playNamedSfx(name);
+    };
+
     // 返回所有需要被Vue组件使用的状态和方法
     return {
         audioManager,
@@ -241,5 +389,6 @@ export function useAudioManager(sfxMap) {
         toggleBgm,
         toggleSfx,
         activateAudioOnMobile,
+        testAllSfx, // 添加测试函数
     };
 }

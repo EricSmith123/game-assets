@@ -14,6 +14,7 @@
         <span>{{ sfxVolume }}%</span>
       </div>
       <div class="settings-actions">
+        <button @click="$emit('test-sfx')" class="test-btn">🧪 测试音效</button>
         <button @click="$emit('reset')" class="reset-btn">重置设置</button>
         <button @click="$emit('close')" class="close-btn">关闭</button>
       </div>
@@ -21,16 +22,11 @@
   </div>
 </template>
 
-<script setup>
-// 定义组件接收的属性
-defineProps({
-  modelValue: Boolean, // 用于控制显示/隐藏 (v-model)
-  bgmVolume: Number,
-  sfxVolume: Number,
-});
+<script setup lang="ts">
+import type { SettingsPanelProps, SettingsPanelEmits } from '@/types/components';
 
-// 定义组件可以触发的事件
-defineEmits(['update:modelValue', 'update:bgmVolume', 'update:sfxVolume', 'reset', 'close']);
+const props = defineProps<SettingsPanelProps>();
+const emit = defineEmits<SettingsPanelEmits>();
 </script>
 
 <style scoped>
@@ -52,6 +48,7 @@ defineEmits(['update:modelValue', 'update:bgmVolume', 'update:sfxVolume', 'reset
 .setting-group span { vertical-align: middle; }
 .settings-actions { display: flex; gap: 10px; margin-top: 25px; }
 .settings-actions button { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; transition: all 0.3s ease; }
+.test-btn { background: #f39c12; color: white; }
 .reset-btn { background: #ff6b6b; color: white; }
 .close-btn { background: #4ecdc4; color: white; }
 .settings-actions button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
